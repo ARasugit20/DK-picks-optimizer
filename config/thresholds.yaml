@@ -1,0 +1,22 @@
+# Tuning knobs — tighten for fewer, higher-quality bets
+
+edge:
+  min_single_edge: 0.03          # 3% edge vs fair implied prob
+  min_parlay_edge: 0.05          # parlays need higher edge (extra vig)
+  min_model_confidence: 0.58     # calibrated P(win) floor
+
+parlay:
+  max_legs: 3
+  max_same_game_legs: 1
+  correlation_penalty: 0.12      # subtract from joint prob per correlated pair
+  max_parlays_per_slip: 10
+
+bankroll:
+  kelly_fraction: 0.25           # fractional Kelly (conservative)
+  max_bet_pct: 0.05              # max 5% bankroll per single
+  max_daily_exposure_pct: 0.25
+  stop_loss_drawdown_pct: 0.20
+
+backtest:
+  min_samples_per_market: 200
+  walk_forward_test_days: 30

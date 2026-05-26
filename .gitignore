@@ -11,7 +11,7 @@ dist/
 build/
 .cursor/
 
-# Data / artifacts (remote + local)
+# Data / artifacts
 data/*.db
 data/raw/
 models/artifacts/
