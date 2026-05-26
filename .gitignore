@@ -1,0 +1,22 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.cursor/
+
+# Data / artifacts (remote + local)
+data/*.db
+data/raw/
+models/artifacts/
+betting_system/data/raw/
+betting_system/models/leg_model/*.joblib
+*.parquet
+*.sqlite
+.DS_Store

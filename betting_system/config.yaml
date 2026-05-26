@@ -1,0 +1,53 @@
+markets:
+  primary: "NBA"
+  types:
+    - "player_points_over"
+    - "player_assists_over"
+    - "player_rebounds_over"
+
+model:
+  random_seed: 42
+  kelly_fraction: 0.25
+  min_edge: 0.03
+  max_legs_per_parlay: 4
+  max_parlays_per_slate: 3
+  max_stake_pct: 0.04
+  max_parlay_pct: 0.02
+  max_slate_exposure: 0.15
+  min_p_hit: 0.55
+  min_leg_odds_american: -250
+  max_leg_odds_american: 250
+  correlation_max_pair: 0.4
+  correlation_discount_default: 1.0
+  worthy_requires_positive_ev: true
+
+training:
+  optuna_trials: 50
+  lgbm_n_estimators: 500
+  lgbm_learning_rate: 0.03
+  retrain_frequency_days: 30
+  calibration:
+    ece_threshold: 0.05
+    primary_method: "isotonic"
+    fallback_method: "sigmoid"
+
+backtest:
+  walk_forward_weeks: 4
+  min_sample_parlays: 200
+  baseline_compare: true
+
+data:
+  odds_api_key: "${ODDS_API_KEY}"
+  stats_api_key: "${STATS_API_KEY}"
+  raw_data_path: "betting_system/data/raw/"
+  processed_data_path: "betting_system/data/processed/"
+  odds_history_path: "betting_system/data/odds_history/"
+  models_path: "betting_system/models/"
+  db_url: "sqlite:///betting_system/data/betting_system.sqlite"
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+
+dashboard:
+  port: 8501
