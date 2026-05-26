@@ -58,6 +58,10 @@ config/thresholds.yaml
 data/sample/         # Example CSVs for bootstrapping
 ```
 
+### `betting_system/` (additional pipeline)
+
+Alternate end-to-end layout (pandas/LightGBM/XGBoost, FastAPI slice, pytest): install with `pip install -r betting_system/requirements.txt`, set `PYTHONPATH` to repo root, then see `betting_system/README.md` for Streamlit/API commands.
+
 ## Data you need
 
 1. **Odds** — The Odds API (configured in `.env`) or manual CSV import
