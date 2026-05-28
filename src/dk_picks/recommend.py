@@ -22,6 +22,8 @@ def generate_recommendations(
     bankroll: float | None = None,
     max_parlays: int = 10,
     markets: list[str] | None = None,
+    fixture_filter: str | None = None,
+    relaxed: bool = False,
 ) -> dict:
     bankroll = bankroll or settings.default_bankroll
     sports = sports or ["nba", "nfl"]
@@ -39,7 +41,16 @@ def generate_recommendations(
                 continue
             if df.empty:
                 continue
-            singles = rank_singles(df, bankroll)
+            if fixture_filter:
+                mask = (
+                    df["home_team"].str.contains(fixture_filter, case=False, na=False)
+                    | df["away_team"].str.contains(fixture_filter, case=False, na=False)
+                    | df["event_id"].astype(str).str.contains(fixture_filter, case=False, na=False)
+                )
+                df = df[mask]
+                if df.empty:
+                    continue
+            singles = rank_singles(df, bankroll, relaxed=relaxed)
             if not singles.empty:
                 all_singles.append(singles)
             parlays = build_parlay_slips(df, bankroll, max_parlays=max_parlays)

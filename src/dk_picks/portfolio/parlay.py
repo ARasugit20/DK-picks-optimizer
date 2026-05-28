@@ -20,14 +20,16 @@ class Leg:
     away_team: str
 
 
-def rank_singles(df: pd.DataFrame, bankroll: float) -> pd.DataFrame:
+def rank_singles(df: pd.DataFrame, bankroll: float, relaxed: bool = False) -> pd.DataFrame:
     t = load_thresholds()
     edge_cfg = t.get("edge", {})
     bank_cfg = t.get("bankroll", {})
-    min_edge = edge_cfg.get("min_single_edge", 0.03)
-    min_conf = edge_cfg.get("min_model_confidence", 0.58)
+    min_edge = 0.0 if relaxed else edge_cfg.get("min_single_edge", 0.03)
+    min_conf = 0.0 if relaxed else edge_cfg.get("min_model_confidence", 0.58)
 
     filtered = df[(df["edge"] >= min_edge) & (df["model_prob"] >= min_conf)].copy()
+    if filtered.empty:
+        return filtered
     filtered["stake"] = filtered.apply(
         lambda r: kelly_stake(
             bankroll,

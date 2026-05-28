@@ -65,6 +65,23 @@ def build_feature_matrix(sport: str | None = None) -> pd.DataFrame:
         rating_diff = home_s["off_rating"] - away_s["def_rating"]
         opp_rating_diff = away_s["off_rating"] - home_s["def_rating"]
         rest_adv = home_s["rest_days"] - away_s["rest_days"]
+        pace_avg = (home_s["pace"] + away_s["pace"]) / 2
+        win_pct_diff = home_s["win_pct"] - away_s["win_pct"]
+
+        # Outcome-specific edges (critical for per-side predictions)
+        is_home_pick = o.outcome == o.home_team
+        is_away_pick = o.outcome == o.away_team
+        team_rating_edge = rating_diff if is_home_pick else opp_rating_diff if is_away_pick else 0.0
+        team_win_edge = win_pct_diff if is_home_pick else -win_pct_diff if is_away_pick else 0.0
+        rest_edge = rest_adv if is_home_pick else -rest_adv if is_away_pick else 0.0
+        home_court = 1.0 if is_home_pick else -1.0 if is_away_pick else 0.0
+
+        if o.market == "totals":
+            over_pick = o.outcome.lower() == "over"
+            pace_edge = (pace_avg - 98.0) / 10.0
+            team_rating_edge = pace_edge if over_pick else -pace_edge
+            team_win_edge = 0.0
+            home_court = 0.0
 
         records.append(
             {
@@ -81,10 +98,13 @@ def build_feature_matrix(sport: str | None = None) -> pd.DataFrame:
                 "fair_prob": o.fair_prob,
                 "rating_diff": rating_diff,
                 "opp_rating_diff": opp_rating_diff,
-                "pace_avg": (home_s["pace"] + away_s["pace"]) / 2,
-                "win_pct_diff": home_s["win_pct"] - away_s["win_pct"],
+                "pace_avg": pace_avg,
+                "win_pct_diff": win_pct_diff,
                 "rest_adv": rest_adv,
-                # Placeholder label: 1 if outcome is home team name on h2h (for training with results)
+                "team_rating_edge": team_rating_edge,
+                "team_win_edge": team_win_edge,
+                "rest_edge": rest_edge,
+                "home_court": home_court,
                 "label": np.nan,
             }
         )
@@ -96,9 +116,9 @@ FEATURE_COLS = [
     "implied_prob",
     "fair_prob",
     "point",
-    "rating_diff",
-    "opp_rating_diff",
+    "team_rating_edge",
+    "team_win_edge",
+    "rest_edge",
+    "home_court",
     "pace_avg",
-    "win_pct_diff",
-    "rest_adv",
 ]

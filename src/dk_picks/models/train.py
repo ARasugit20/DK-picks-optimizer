@@ -39,6 +39,12 @@ def train_market_model(sport: str, market: str = "h2h", use_synthetic: bool = Tr
         raise ValueError("Need at least 50 labeled rows or enable synthetic bootstrap")
 
     X = df[FEATURE_COLS].fillna(0)
+    # Augment tiny slates so the booster can fit (single-game ingest)
+    y = pd.Series(y, name="label")
+    if len(X) < 30:
+        reps = max(2, 30 // max(len(X), 1))
+        X = pd.concat([X] * reps, ignore_index=True)
+        y = pd.concat([y] * reps, ignore_index=True)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     base = LGBMClassifier(
@@ -50,7 +56,11 @@ def train_market_model(sport: str, market: str = "h2h", use_synthetic: bool = Tr
         colsample_bytree=0.8,
         verbose=-1,
     )
-    model = CalibratedClassifierCV(base, method="isotonic", cv=3)
+    # Single-slate / few rows: skip CV calibration (needs 3+ folds per class)
+    if len(X_train) >= 30 and y_train.nunique() >= 2:
+        model = CalibratedClassifierCV(base, method="isotonic", cv=3)
+    else:
+        model = base
     model.fit(X_train, y_train)
 
     acc = (model.predict(X_test) == y_test).mean()
