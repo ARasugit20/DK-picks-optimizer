@@ -1,0 +1,3 @@
+# CI and Streamlit Cloud: install from repo root
+-r betting_system/requirements.txt
+-e ".[dev]"
