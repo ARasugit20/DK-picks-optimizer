@@ -18,8 +18,14 @@ model:
   min_leg_odds_american: -250
   max_leg_odds_american: 250
   correlation_max_pair: 0.4
+  correlation_default_pair: 0.0
   correlation_discount_default: 1.0
   worthy_requires_positive_ev: true
+
+features:
+  season_games: 82
+  rolling_windows: [3, 5, 10]
+  ewm_span: 5
 
 training:
   optuna_trials: 50
@@ -28,8 +34,10 @@ training:
   retrain_frequency_days: 30
   calibration:
     ece_threshold: 0.05
+    ece_test_max: 0.10
     primary_method: "isotonic"
     fallback_method: "sigmoid"
+    calibration_plot_bins: 10
 
 backtest:
   walk_forward_weeks: 4

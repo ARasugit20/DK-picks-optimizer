@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from betting_system.config import load_settings
-from betting_system.logging_utils import append_jsonl, get_logger, utcnow
+from betting_system.logging_utils import append_jsonl, get_logger
 from betting_system.pipeline.predict import compute_edge
 from betting_system.optimizer.portfolio import optimize_slate
 

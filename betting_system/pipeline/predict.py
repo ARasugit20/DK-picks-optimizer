@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from betting_system.config import load_settings
-from betting_system.odds_math import american_to_decimal, compute_ev_per_unit, implied_prob_from_american
+from betting_system.odds_math import american_to_decimal, compute_ev_per_unit
 from betting_system.schemas import EdgeResult
 
 
 def compute_edge(p_hit: float, odds_american: int, *, min_edge: float | None = None, require_positive_ev: bool | None = None) -> EdgeResult:
+    """Compare model p_hit to market-implied probability and flag worthy legs."""
     settings = load_settings()
     cfg = settings.model
     min_edge = cfg["min_edge"] if min_edge is None else min_edge

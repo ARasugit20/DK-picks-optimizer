@@ -18,6 +18,7 @@ def optimize_slate(
     bankroll: float,
     corr_path: str | Path | None = None,
 ) -> SlatePicks:
+    """Select a constrained set of correlated multi-leg portfolios for one slate."""
     settings = load_settings()
     cfg = settings.model
     max_parlays = int(cfg["max_parlays_per_slate"])

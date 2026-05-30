@@ -83,14 +83,26 @@ def build_features(
     # Basic features
     df["line_minus_recent"] = np.nan
 
+    feat_cfg = settings.features
+    rolling_windows = list(feat_cfg.get("rolling_windows", [3, 5, 10]))
+    ewm_span = int(feat_cfg.get("ewm_span", 5))
+    season_games = float(feat_cfg.get("season_games", 82))
+
     # Leakage-free rolling features computed on actual_value within stat_type
     df = df.sort_values(["player_id", "stat_type", "game_date"]).copy()
-    df = _rolling_features(df, group_cols=["player_id", "stat_type"], value_col="actual_value", windows=[3, 5, 10], ewm_span=5)
-    df["line_minus_recent"] = df["line"] - df["actual_value_roll_mean_5"]
+    df = _rolling_features(
+        df,
+        group_cols=["player_id", "stat_type"],
+        value_col="actual_value",
+        windows=rolling_windows,
+        ewm_span=ewm_span,
+    )
+    roll_col = f"actual_value_roll_mean_{rolling_windows[1] if len(rolling_windows) > 1 else rolling_windows[0]}"
+    df["line_minus_recent"] = df["line"] - df[roll_col]
 
     # Season progress: within each player/stat_type
     df["game_number_season"] = df.groupby(["player_id", "stat_type"])["game_date"].rank(method="dense").astype(int)
-    df["season_progress"] = (df["game_number_season"] / 82.0).clip(0, 1)
+    df["season_progress"] = (df["game_number_season"] / season_games).clip(0, 1)
 
     # Placeholder contextual features (wired for later enrichment)
     for col in ["home_away", "days_rest", "back_to_back", "opp_def_rank_vs_stat", "minutes_proxy"]:

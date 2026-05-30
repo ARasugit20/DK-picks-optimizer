@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import itertools
-import math
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +11,7 @@ from betting_system.odds_math import american_to_decimal
 
 
 def load_correlation_matrix(path: str | Path) -> pd.DataFrame:
+    """Load a pairwise leg correlation matrix from parquet or CSV."""
     p = Path(path)
     if not p.exists():
         return pd.DataFrame()
@@ -20,10 +20,12 @@ def load_correlation_matrix(path: str | Path) -> pd.DataFrame:
 
 
 def _pair_key(a: dict[str, Any], b: dict[str, Any]) -> tuple[str, str, str, str]:
+    """Build a stable key for two legs (unused in v1 ranking)."""
     return (a["market_type"], a["player_id"], b["market_type"], b["player_id"])
 
 
 def _corr_lookup(corr_df: pd.DataFrame, leg_a: dict[str, Any], leg_b: dict[str, Any], default: float) -> float:
+    """Return pairwise correlation for two legs, or *default* when unknown."""
     if corr_df.empty:
         return default
     # Expected columns: market_type_a, player_id_a, market_type_b, player_id_b, corr
@@ -57,11 +59,12 @@ def build_parlay_candidates(
     *,
     corr_path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
+    """Build ranked correlated multi-leg portfolio candidates from worthy legs."""
     settings = load_settings()
     cfg = settings.model
     max_legs = int(cfg["max_legs_per_parlay"])
     corr_max_pair = float(cfg["correlation_max_pair"])
-    corr_default = float(cfg["correlation_discount_default"])
+    corr_default = float(cfg.get("correlation_default_pair", 0.0))
 
     corr_df = load_correlation_matrix(corr_path) if corr_path else pd.DataFrame()
 

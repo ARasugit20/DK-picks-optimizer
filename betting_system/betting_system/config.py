@@ -38,8 +38,14 @@ class Settings:
     def backtest(self) -> dict[str, Any]:
         return self.raw["backtest"]
 
+    @property
+    def features(self) -> dict[str, Any]:
+        return self.raw.get("features", {})
 
-def load_settings(config_path: str | Path = Path("betting_system/config.yaml")) -> Settings:
+
+def load_settings(config_path: str | Path | None = None) -> Settings:
+    if config_path is None:
+        config_path = os.environ.get("BETTING_CONFIG_PATH", "betting_system/config.yaml")
     p = Path(config_path)
     if not p.exists():
         raise FileNotFoundError(f"Config not found at {p.resolve()}")

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from betting_system.config import load_settings
 from betting_system.odds_math import american_to_decimal
@@ -14,6 +13,7 @@ class StakeDecision:
 
 
 def fractional_kelly_stake(*, bankroll: float, p_hit: float, odds_american: int) -> StakeDecision:
+    """Compute fractional Kelly stake capped by max_stake_pct from config."""
     settings = load_settings()
     cfg = settings.model
     kelly_fraction = float(settings.model["kelly_fraction"])
@@ -33,6 +33,7 @@ def fractional_kelly_stake(*, bankroll: float, p_hit: float, odds_american: int)
 
 
 def parlay_stake_cap(*, bankroll: float) -> float:
+    """Return maximum stake for a multi-leg portfolio from config max_parlay_pct."""
     settings = load_settings()
     return bankroll * float(settings.model["max_parlay_pct"])
 
