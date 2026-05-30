@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException
 from betting_system.config import load_settings
 
 
-app = FastAPI(title="ML Sports Betting Decision System", version="0.1.0")
+app = FastAPI(title="Probabilistic Forecasting & Portfolio API", version="0.1.0")
 
 
 def _processed_path(name: str) -> Path:
@@ -19,6 +19,7 @@ def _processed_path(name: str) -> Path:
 
 @app.get("/picks/today")
 def picks_today() -> Any:
+    """Return today's prop forecasts and correlated multi-leg portfolios."""
     p = _processed_path("picks_today.json")
     if not p.exists():
         raise HTTPException(status_code=404, detail="No picks generated yet. Run pipeline first.")
@@ -42,7 +43,8 @@ def model_calibration() -> Any:
 
 
 @app.get("/bankroll")
-def bankroll() -> Any:
+def capital_allocation() -> Any:
+    """Return current capital allocation state (bankroll, exposure, PnL)."""
     p = _processed_path("bankroll.json")
     if not p.exists():
         # default bankroll state

@@ -1,24 +1,22 @@
-# ML Sports Betting Decision System
+# Probabilistic Forecasting System (`betting_system/`)
 
-This is a **disciplined, test-first** ML system for DraftKings-style markets:
+Disciplined, test-first ML pipeline for sports prop markets:
 
 - Learn **calibrated hit probabilities** per leg (NBA props first)
-- Compute **edge + EV** vs odds
-- Build **small, risk-controlled** parlays
+- Compute **model edge vs market-implied probability** and EV
+- Build **small, risk-controlled correlated multi-leg portfolios**
 - Backtest with **walk-forward** evaluation
 
 ## Setup
 
-From the repo root (`dk-ml-lab/`):
+From the repo root:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r betting_system/requirements.txt
-export PYTHONPATH="$(pwd)"   # repo root — so `import betting_system` works
+pip install -r requirements.txt
+export PYTHONPATH="$(pwd)"
 ```
-
-The dashboard bootstrap also adds the repo root to `sys.path`; keeping `PYTHONPATH` set matches pytest/uvicorn runs.
 
 Set API keys (for odds ingestion):
 
@@ -30,7 +28,7 @@ export STATS_API_KEY="..."
 ## Run tests
 
 ```bash
-pytest -q betting_system/tests
+pytest tests/ --cov=. --cov-fail-under=75
 ```
 
 ## Run API
@@ -41,22 +39,8 @@ uvicorn betting_system.api.main:app --reload --host 127.0.0.1 --port 8000
 
 ## Run dashboard
 
-From the repo root:
-
 ```bash
-streamlit run betting_system/dashboard/app.py
+streamlit run streamlit_app.py
 ```
 
-If you see `ModuleNotFoundError: No module named 'betting_system'`, from the repo root run:
-
-```bash
-export PYTHONPATH="$(pwd)"
-streamlit run betting_system/dashboard/app.py
-```
-
-## Next steps
-
-- Add a stats ingestion module that produces `stat_results` parquet with `game_date`
-- Train per `market_type` using `pipeline/train.py`
-- Run `pipeline/backtest.py` over a real holdout period
-
+All thresholds (Kelly fraction, max stake %, ECE limits) live in `config.yaml`.

@@ -15,17 +15,17 @@ import streamlit as st
 from betting_system.config import load_settings
 
 
-st.set_page_config(page_title="Betting System", layout="wide")
+st.set_page_config(page_title="Probabilistic Forecasting Dashboard", layout="wide")
 
 settings = load_settings()
 processed = Path(settings.data["processed_data_path"])
 
 
-st.title("ML Sports Betting Decision System")
+st.title("Probabilistic Forecasting & Capital Allocation")
 
 page = st.sidebar.selectbox(
     "Page",
-    ["Today's Picks", "Calibration", "Bankroll Tracker", "Backtester (logs)", "Model Health"],
+    ["Today's Forecasts", "Calibration", "Capital Tracker", "Walk-Forward Logs", "Model Health"],
 )
 
 
@@ -35,7 +35,7 @@ def _load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-if page == "Today's Picks":
+if page == "Today's Forecasts":
     data = _load_json(processed / "picks_today.json")
     if not data:
         st.info("No picks generated yet. Run pipeline to generate picks.")
@@ -49,14 +49,14 @@ elif page == "Calibration":
     else:
         st.json(data)
 
-elif page == "Bankroll Tracker":
+elif page == "Capital Tracker":
     data = _load_json(processed / "bankroll.json")
     if not data:
         st.write({"bankroll": 1000.0, "exposure": 0.0, "pnl": 0.0})
     else:
         st.json(data)
 
-elif page == "Backtester (logs)":
+elif page == "Walk-Forward Logs":
     log_path = processed / "backtest_log.jsonl"
     if not log_path.exists():
         st.info("No backtest logs yet. Run walk_forward_backtest.")
