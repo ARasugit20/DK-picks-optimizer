@@ -42,6 +42,10 @@ class Settings:
     def features(self) -> dict[str, Any]:
         return self.raw.get("features", {})
 
+    @property
+    def dashboard(self) -> dict[str, Any]:
+        return self.raw.get("dashboard", {})
+
 
 def load_settings(config_path: str | Path | None = None) -> Settings:
     if config_path is None:

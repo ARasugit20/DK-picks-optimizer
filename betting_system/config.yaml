@@ -59,3 +59,9 @@ api:
 
 dashboard:
   port: 8501
+  default_bankroll: 50.0
+  leg_count_options: [5, 10, 15]
+  multiplier_targets: [10, 15]
+  multiplier_tolerance_pct: 0.30
+  max_pool_legs: 22
+  use_demo_when_empty: true

@@ -58,11 +58,16 @@ def build_parlay_candidates(
     worthy_legs: list[dict[str, Any]],
     *,
     corr_path: str | Path | None = None,
+    min_legs: int | None = None,
+    max_legs: int | None = None,
 ) -> list[dict[str, Any]]:
     """Build ranked correlated multi-leg portfolio candidates from worthy legs."""
     settings = load_settings()
     cfg = settings.model
-    max_legs = int(cfg["max_legs_per_parlay"])
+    min_n = int(min_legs) if min_legs is not None else 2
+    max_n = int(max_legs) if max_legs is not None else int(cfg["max_legs_per_parlay"])
+    min_n = max(2, min_n)
+    max_n = max(min_n, max_n)
     corr_max_pair = float(cfg["correlation_max_pair"])
     corr_default = float(cfg.get("correlation_default_pair", 0.0))
 
@@ -70,7 +75,7 @@ def build_parlay_candidates(
 
     # Generate combinations 2..max_legs (parlays of size 1 belong in singles path)
     candidates: list[dict[str, Any]] = []
-    for n in range(2, max_legs + 1):
+    for n in range(min_n, max_n + 1):
         for combo in itertools.combinations(worthy_legs, n):
             # Filter: no two legs from same player
             players = [c["player_id"] for c in combo]
