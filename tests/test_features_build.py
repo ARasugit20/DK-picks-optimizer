@@ -22,6 +22,7 @@ def feature_inputs(tmp_path):
             "actual_value": [22.0, 28.0],
             "hit": [True, False],
             "game_date": [date(2024, 1, 1), date(2024, 1, 3)],
+            "home_away": ["home", "away"],
         }
     )
     odds = pd.DataFrame(
