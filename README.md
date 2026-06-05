@@ -3,7 +3,7 @@
 [![CI](https://github.com/ARasugit20/DK-picks-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/ARasugit20/DK-picks-optimizer/actions/workflows/ci.yml)
 [![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://dk-picks-optimizer.streamlit.app/)
 
-End-to-end ML pipeline for **calibrated probability forecasting** and **constrained capital allocation** on correlated multi-leg portfolios · LightGBM · isotonic calibration · walk-forward backtest · FastAPI · Streamlit
+End-to-end ML pipeline for **probabilistic performance forecasting** and **constrained capital allocation** on correlated multi-leg portfolios · LightGBM · isotonic calibration · walk-forward backtest · FastAPI · Streamlit
 
 ## What makes this different from typical forecast dashboards
 
@@ -52,7 +52,7 @@ Walk-forward holdout (synthetic demonstration slate — replace with your own `p
 
 **How to read these metrics**
 
-- **ROI (%)** — Return on capital staked over the week; positive means the allocator grew bankroll net of losses.
+- **ROI (%)** — Return on allocated capital over the week; positive means net growth after losses.
 - **Hit Rate (%)** — Share of legs/portfolios that resolved favorably; useful with calibration, not alone.
 - **Brier Score** — Mean squared error of predicted probabilities vs outcomes; lower is better. **Well-calibrated when Brier &lt; 0.25** on holdout.
 - **Kelly Stake ($)** — Typical fractional-Kelly stake after `max_stake_pct` cap from `betting_system/config.yaml`.
@@ -78,21 +78,24 @@ export PYTHONPATH="$(pwd)"
 cp .env.example .env
 # ODDS_API_KEY from https://the-odds-api.com/
 
-# Core probabilistic forecasting package
+# Probabilistic forecasting pipeline (recommended)
+dk-pipeline --dry-run          # fixtures → features → train → picks_today.json
+streamlit run streamlit_app.py # Slate Optimizer dashboard
+
+# Legacy dk_picks CLI
 dk-picks init-db
 dk-picks ingest-odds --sport basketball_nba
 dk-picks train --sport nba
 dk-picks recommend --bankroll 500 --max-parlays 10
 
-# Alternate betting_system pipeline (FastAPI + walk-forward)
+# API
 uvicorn betting_system.api.main:app --reload
-streamlit run streamlit_app.py
 ```
 
 ## Tests & CI
 
 ```bash
-pytest tests/ --cov=. --cov-fail-under=75
+pytest --cov=. --cov-fail-under=80
 ruff check .
 ```
 
@@ -102,7 +105,7 @@ ruff check .
 src/dk_picks/           # Typer CLI, DB, features, portfolio/kelly
 betting_system/         # LightGBM pipeline, optimizer, FastAPI, dashboard
   config.yaml           # All thresholds (Kelly, ECE, exposure) — no magic numbers
-  pipeline/             # ingest, features, train, predict, backtest
+  pipeline/             # ingest, features, train, predict_slate, run_pipeline
   optimizer/            # correlated multi-leg portfolios + staking
 scripts/plot_calibration.py
 docs/INTERVIEW.md       # 60-second interview answers
