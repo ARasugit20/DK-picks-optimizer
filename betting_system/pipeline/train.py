@@ -24,6 +24,7 @@ logger = get_logger(__name__)
 
 
 def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
+    """Compute expected calibration error (ECE) across probability bins."""
     bins = np.linspace(0.0, 1.0, n_bins + 1)
     idx = np.digitize(y_prob, bins) - 1
     ece = 0.0
@@ -38,6 +39,7 @@ def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: i
 
 
 def _time_split(df: pd.DataFrame, holdout_start: date) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split feature rows into train (before holdout) and validation (on/after holdout)."""
     df = df.sort_values("game_date").copy()
     train = df[df["game_date"] < holdout_start].copy()
     valid = df[df["game_date"] >= holdout_start].copy()
@@ -45,6 +47,7 @@ def _time_split(df: pd.DataFrame, holdout_start: date) -> tuple[pd.DataFrame, pd
 
 
 def _select_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
+    """Drop identifiers/target and return numeric feature matrix + binary label."""
     y = df["hit"].astype(int)
     drop = {"hit", "game_id", "player_id", "game_date", "market_type", "actual_value"}
     X = df.drop(columns=[c for c in df.columns if c in drop])
@@ -97,10 +100,24 @@ def train_market_type(
     features_path: str | Path,
     market_type: str,
     holdout_start: date,
+    min_rows: int = 500,
+    optuna_trials: int | None = None,
 ) -> TrainedArtifacts:
+    """Train and calibrate LightGBM + XGBoost ensemble for one market type.
+
+    Args:
+        features_path: Parquet path from build_features.
+        market_type: Canonical market key (e.g. player_points_over).
+        holdout_start: First validation game_date (walk-forward split).
+        min_rows: Minimum rows required to train.
+        optuna_trials: Override Optuna trial count from config when set.
+
+    Returns:
+        Paths to calibrated LGBM, XGB, and metrics JSON artifacts.
+    """
     settings = load_settings()
     seed = int(settings.model["random_seed"])
-    trials = int(settings.training["optuna_trials"])
+    trials = int(optuna_trials if optuna_trials is not None else settings.training["optuna_trials"])
     calib_cfg = settings.training["calibration"]
     ece_threshold = float(calib_cfg["ece_threshold"])
     primary_method = str(calib_cfg["primary_method"])
@@ -108,8 +125,8 @@ def train_market_type(
 
     df = pd.read_parquet(features_path)
     df = df[df["market_type"] == market_type].copy()
-    if len(df) < 500:
-        raise ValueError(f"Not enough rows to train {market_type}: {len(df)} (need ~500+)")
+    if len(df) < min_rows:
+        raise ValueError(f"Not enough rows to train {market_type}: {len(df)} (need ~{min_rows}+)")
 
     train_df, valid_df = _time_split(df, holdout_start=holdout_start)
     if train_df.empty or valid_df.empty:
