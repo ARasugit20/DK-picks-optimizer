@@ -15,8 +15,10 @@ import streamlit as st
 from betting_system.config import load_settings
 from betting_system.dashboard.demo_slate import demo_worthy_legs
 from betting_system.dashboard.recommend import ParlayRecommendation, recommend_all_targets
+from betting_system.dashboard.shap_panel import render_shap_panel
+
 st.set_page_config(
-    page_title="DK Picks Optimizer",
+    page_title="Slate Optimizer",
     page_icon="🏀",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -80,15 +82,15 @@ def _heat_icon(p_hit: float) -> str:
     return ""
 
 
-def _render_leg_card(leg: dict, *, in_parlay: bool = False) -> None:
-    """Render one player prop row (FantasyData-style)."""
+def _render_leg_card(leg: dict, *, in_portfolio: bool = False) -> None:
+    """Render one player prop forecast row."""
     hot = "pick-card-hot" if float(leg.get("p_hit", 0)) >= 0.60 else ""
     cold = "pick-card-cold" if float(leg.get("p_hit", 0)) < 0.56 and not hot else ""
     cls = f"pick-card {hot or cold}".strip()
     score = leg.get("score_final") or leg.get("matchup", "")
     actual = leg.get("actual_stat")
     actual_txt = f" · Actual: <b>{actual:g}</b>" if actual is not None else ""
-    border = "2px solid #3fb950" if in_parlay else "1px solid #2d333b"
+    border = "2px solid #3fb950" if in_portfolio else "1px solid #2d333b"
     st.markdown(
         f"""
         <div class="{cls}" style="border:{border}">
@@ -113,41 +115,41 @@ def _render_recommendation(rec: ParlayRecommendation) -> None:
     quality_note = (
         "Payout band matches your target."
         if rec.match_quality == "on_target"
-        else "Closest available combo — true 10×/15× may need different leg count or odds."
+        else "Closest available combo — adjust leg count or allocation for tighter multiplier fit."
     )
     st.markdown(
         f"""
         <div class="rec-banner">
           <b>{rec.leg_count}-leg portfolio → {rec.target_multiplier:.0f}× target</b><br/>
-          Stake <b>${rec.stake:,.2f}</b> → payout if all hit <b>${rec.payout_if_win:,.2f}</b>
-          ({rec.implied_multiplier:.2f}× implied) · Win prob <b>{win_pct:.2f}%</b> · EV/unit {rec.ev_per_unit:+.3f}<br/>
+          Allocation <b>${rec.stake:,.2f}</b> → projected payout if all resolve <b>${rec.payout_if_win:,.2f}</b>
+          ({rec.implied_multiplier:.2f}× implied) · Joint probability <b>{win_pct:.2f}%</b> · EV/unit {rec.ev_per_unit:+.3f}<br/>
           <span style="color:#8b949e">{quality_note}</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
     for leg in rec.legs:
-        _render_leg_card(leg, in_parlay=True)
+        _render_leg_card(leg, in_portfolio=True)
 
 
-def _page_picks_builder() -> None:
-    """Main picks page: bankroll, leg count, multiplier targets."""
+def _page_slate_optimizer() -> None:
+    """Main slate page: allocation, leg count, multiplier targets."""
     legs, source = _load_slate_legs()
     today = date.today().strftime("%a %b %d").upper()
     st.markdown(CARD_CSS, unsafe_allow_html=True)
-    st.title(f"NBA DraftKings Picks Tonight ({today})")
+    st.title(f"NBA Slate Optimizer ({today})")
     if source == "demo":
         st.caption(
-            "Demo slate — connect Odds API + run pipeline for live lines. "
-            "Recommendations use calibrated probabilities from the optimizer."
+            "Demo slate — run `dk-pipeline --dry-run` for fixture-driven forecasts. "
+            "Recommendations use calibrated probabilities and constrained capital allocation."
         )
     elif source == "empty":
-        st.warning("No slate data. Run the ingest/predict pipeline or enable demo mode in config.")
+        st.warning("No slate data. Run `dk-pipeline --dry-run` or the live pipeline.")
         return
 
-    st.sidebar.header("Your play")
+    st.sidebar.header("Capital allocation")
     bankroll = st.sidebar.number_input(
-        "Amount to play ($)",
+        "Allocation ($)",
         min_value=5.0,
         max_value=100_000.0,
         value=float(dash_cfg.get("default_bankroll", 50.0)),
@@ -159,14 +161,14 @@ def _page_picks_builder() -> None:
         index=0,
         horizontal=True,
     )
-    mult_10 = st.sidebar.checkbox("Find best 10× play", value=True)
-    mult_15 = st.sidebar.checkbox("Find best 15× play", value=True)
-    run = st.sidebar.button("Get best picks", type="primary", use_container_width=True)
+    mult_10 = st.sidebar.checkbox("Optimize for 10× payout", value=True)
+    mult_15 = st.sidebar.checkbox("Optimize for 15× payout", value=True)
+    run = st.sidebar.button("Generate forecasts", type="primary", use_container_width=True)
 
     worthy = sorted(legs, key=lambda x: float(x.get("p_hit", 0)), reverse=True)
     col_a, col_b, col_c = st.columns(3)
-    col_a.metric("Props available", len(worthy))
-    col_b.metric("Your stake", f"${bankroll:,.0f}")
+    col_a.metric("Forecasts available", len(worthy))
+    col_b.metric("Allocation", f"${bankroll:,.0f}")
     col_c.metric("Leg count", int(leg_count))
 
     if run:
@@ -185,25 +187,25 @@ def _page_picks_builder() -> None:
                 multipliers=targets,
             )
             if not recs:
-                st.error("Could not build a portfolio — try fewer legs or a different stake.")
+                st.error("Could not build a portfolio — try fewer legs or a different allocation.")
             else:
                 st.success(
-                    f"Top {len(recs)} pick(s) for ${bankroll:,.0f} on a {leg_count}-leg card "
-                    f"(ranked by win probability vs payout target)."
+                    f"Top {len(recs)} forecast(s) for ${bankroll:,.0f} on a {leg_count}-leg portfolio "
+                    f"(ranked by joint probability vs payout target)."
                 )
                 for rec in recs:
                     st.divider()
                     _render_recommendation(rec)
     else:
-        st.info("Set your amount and leg count, then click **Get best picks** for 10× / 15× recommendations.")
+        st.info("Set allocation and leg count, then click **Generate forecasts** for 10× / 15× targets.")
 
-    st.subheader("All player props (sorted by model confidence)")
+    st.subheader("All player forecasts (sorted by model confidence)")
     for leg in worthy[:18]:
         _render_leg_card(leg)
 
 
 def _page_other(name: str) -> None:
-    """Secondary admin pages (calibration, logs)."""
+    """Secondary admin pages (calibration, logs, SHAP)."""
     if name == "Calibration":
         data = _load_json(processed / "calibration_latest.json")
         st.json(data if data else {"message": "Train a model to populate calibration_latest.json"})
@@ -213,23 +215,25 @@ def _page_other(name: str) -> None:
     elif name == "Walk-Forward Logs":
         log_path = processed / "backtest_log.jsonl"
         if not log_path.exists():
-            st.info("No backtest logs yet.")
+            st.info("No walk-forward logs yet.")
         else:
             rows = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
             df = pd.DataFrame(rows)
             st.dataframe(df[["slate_id", "bankroll", "profit", "staked"]], use_container_width=True)
             st.line_chart(df.set_index("slate_id")["bankroll"])
+    elif name == "Model Health":
+        render_shap_panel()
     else:
-        st.write("Model artifacts: `betting_system/models/leg_model/`")
+        st.write("Model artifacts: `betting_system/data/processed/models/`")
 
 
 page = st.sidebar.selectbox(
     "Page",
-    ["Picks Tonight", "Calibration", "Capital Tracker", "Walk-Forward Logs", "Model Health"],
+    ["Slate Optimizer", "Calibration", "Capital Tracker", "Walk-Forward Logs", "Model Health"],
 )
 
-if page == "Picks Tonight":
-    _page_picks_builder()
+if page == "Slate Optimizer":
+    _page_slate_optimizer()
 else:
     st.title(page)
     _page_other(page)
