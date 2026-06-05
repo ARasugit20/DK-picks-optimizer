@@ -30,4 +30,4 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          pytest tests/ -v --cov=. --cov-report=term-missing --cov-fail-under=75
+          pytest -v --cov=. --cov-report=term-missing --cov-fail-under=80
