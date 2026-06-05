@@ -18,4 +18,5 @@ APScheduler
 joblib
 pytest
 pytest-cov
+shap
 matplotlib
