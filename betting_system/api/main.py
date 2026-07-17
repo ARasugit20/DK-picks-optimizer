@@ -61,3 +61,41 @@ def post_result(payload: dict[str, Any]) -> Any:
         f.write(json.dumps(payload, default=str) + "\n")
     return {"ok": True}
 
+
+@app.get("/markets/opportunities")
+def market_opportunities() -> Any:
+    """Return ranked prediction-market opportunities with hero pick and metadata."""
+    p = _processed_path("market_opportunities.json")
+    if not p.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="No market opportunities yet. Run dk-market-pipeline first.",
+        )
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+@app.get("/markets/portfolio")
+def market_portfolio() -> Any:
+    """Return open positions and account summary for prediction markets."""
+    p = _processed_path("market_opportunities.json")
+    if not p.exists():
+        return {"portfolio": [], "account": {"equity": 0, "daily_edge_captured": 0, "open_pnl": 0}}
+    data = json.loads(p.read_text(encoding="utf-8"))
+    return {"portfolio": data.get("portfolio", []), "account": data.get("account", {})}
+
+
+@app.get("/markets/{market_id}")
+def market_detail(market_id: str) -> Any:
+    """Return a single market opportunity by id."""
+    p = _processed_path("market_opportunities.json")
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="No market data available.")
+    data = json.loads(p.read_text(encoding="utf-8"))
+    for m in data.get("opportunities", []):
+        if m.get("market_id") == market_id:
+            return m
+    hero = data.get("hero_pick")
+    if hero and hero.get("market_id") == market_id:
+        return hero
+    raise HTTPException(status_code=404, detail=f"Market not found: {market_id}")
+

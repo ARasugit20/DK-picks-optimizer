@@ -45,3 +45,24 @@ def test_picks_today_404_when_missing(test_config_path, tmp_path):
     client = TestClient(app)
     response = client.get("/picks/today")
     assert response.status_code == 404
+
+
+def test_market_opportunities_endpoint(api_client, tmp_path, test_config_path):
+    """GET /markets/opportunities returns scored markets artifact."""
+    from betting_system.pipeline.run_market_pipeline import run_market_pipeline
+
+    run_market_pipeline(use_fixture=True)
+    response = api_client.get("/markets/opportunities")
+    assert response.status_code == 200
+    body = response.json()
+    assert body.get("hero_pick") is not None
+    assert len(body.get("opportunities", [])) >= 1
+
+
+def test_market_portfolio_endpoint(api_client):
+    """GET /markets/portfolio returns positions and account."""
+    response = api_client.get("/markets/portfolio")
+    assert response.status_code == 200
+    body = response.json()
+    assert "portfolio" in body
+    assert "account" in body
