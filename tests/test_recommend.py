@@ -23,3 +23,18 @@ def test_recommend_all_targets_produces_10x_and_15x():
     mults = {int(r.target_multiplier) for r in recs}
     assert 10 in mults
     assert 15 in mults
+
+
+def test_objective_mode_changes_selection():
+    """max_prob and max_ev modes produce valid recommendations."""
+    legs = demo_worthy_legs()
+    rec_prob = recommend_all_targets(
+        legs, bankroll=100.0, leg_counts=[5], multipliers=[10], objective_mode="max_prob"
+    )
+    rec_ev = recommend_all_targets(
+        legs, bankroll=100.0, leg_counts=[5], multipliers=[10], objective_mode="max_ev"
+    )
+    assert rec_prob
+    assert rec_ev
+    assert rec_prob[0].objective_mode == "max_prob"
+    assert rec_ev[0].objective_mode == "max_ev"

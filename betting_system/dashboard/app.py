@@ -17,9 +17,11 @@ from betting_system.dashboard.demo_slate import demo_worthy_legs
 from betting_system.dashboard.recommend import ParlayRecommendation, recommend_all_targets
 from betting_system.dashboard.shap_panel import render_shap_panel
 
+from betting_system.dashboard.terminal_page import page_prediction_terminal
+
 st.set_page_config(
-    page_title="Slate Optimizer",
-    page_icon="🏀",
+    page_title="Edge Desk",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -123,7 +125,8 @@ def _render_recommendation(rec: ParlayRecommendation) -> None:
           <b>{rec.leg_count}-leg portfolio → {rec.target_multiplier:.0f}× target</b><br/>
           Allocation <b>${rec.stake:,.2f}</b> → projected payout if all resolve <b>${rec.payout_if_win:,.2f}</b>
           ({rec.implied_multiplier:.2f}× implied) · Joint probability <b>{win_pct:.2f}%</b> · EV/unit {rec.ev_per_unit:+.3f}<br/>
-          <span style="color:#8b949e">{quality_note}</span>
+          <span style="color:#8b949e">{quality_note}</span><br/>
+          <span style="color:#8b949e">Mode: {rec.objective_mode} · {'; '.join(rec.selection_reasons)}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -161,8 +164,13 @@ def _page_slate_optimizer() -> None:
         index=0,
         horizontal=True,
     )
-    mult_10 = st.sidebar.checkbox("Optimize for 10× payout", value=True)
-    mult_15 = st.sidebar.checkbox("Optimize for 15× payout", value=True)
+    mult_10 = st.sidebar.checkbox("Optimize for 10x payout", value=True)
+    mult_15 = st.sidebar.checkbox("Optimize for 15x payout", value=True)
+    objective_mode = st.sidebar.selectbox(
+        "Objective mode",
+        ["balanced", "conservative", "aggressive", "max_ev", "max_prob", "target_multiplier"],
+        index=0,
+    )
     run = st.sidebar.button("Generate forecasts", type="primary", use_container_width=True)
 
     worthy = sorted(legs, key=lambda x: float(x.get("p_hit", 0)), reverse=True)
@@ -185,6 +193,7 @@ def _page_slate_optimizer() -> None:
                 bankroll=float(bankroll),
                 leg_counts=[int(leg_count)],
                 multipliers=targets,
+                objective_mode=objective_mode,
             )
             if not recs:
                 st.error("Could not build a portfolio — try fewer legs or a different allocation.")
@@ -229,10 +238,12 @@ def _page_other(name: str) -> None:
 
 page = st.sidebar.selectbox(
     "Page",
-    ["Slate Optimizer", "Calibration", "Capital Tracker", "Walk-Forward Logs", "Model Health"],
+    ["Edge Desk", "NBA Slate Optimizer", "Calibration", "Capital Tracker", "Walk-Forward Logs", "Model Health"],
 )
 
-if page == "Slate Optimizer":
+if page == "Edge Desk":
+    page_prediction_terminal()
+elif page == "NBA Slate Optimizer":
     _page_slate_optimizer()
 else:
     st.title(page)
