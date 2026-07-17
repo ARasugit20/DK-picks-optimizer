@@ -34,9 +34,14 @@ def test_run_market_pipeline_fixture_writes_artifact(market_cfg):
     out = run_market_pipeline(use_fixture=True)
     assert out.exists()
     data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["data_source"] == "fixture_fallback"
+    assert data["meta"]["data_source"] == "fixture_fallback"
     assert data["hero_pick"] is not None
+    assert data["hero_pick"]["data_source"] == "fixture_fallback"
+    assert data["edge_summary"]["logged_edges"] >= 1
     assert len(data["opportunities"]) >= 6
     assert (processed / "prediction_markets.parquet").exists()
+    assert (processed / "market_edge_log.jsonl").exists()
 
 
 def test_ingest_market_rows_live_fallback(monkeypatch, market_cfg):

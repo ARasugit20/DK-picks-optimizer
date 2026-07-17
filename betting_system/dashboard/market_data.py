@@ -22,9 +22,11 @@ def load_market_opportunities(*, refresh_if_missing: bool = True) -> dict[str, A
         run_market_pipeline(use_fixture=True)
     if not path.exists():
         return {
-            "meta": {"is_live": False, "fallback_reason": "no data"},
+            "meta": {"is_live": False, "data_source": "fixture_fallback", "fallback_reason": "no data"},
+            "data_source": "fixture_fallback",
             "hero_pick": None,
             "opportunities": [],
+            "edge_summary": {"logged_edges": 0, "resolved_edges": 0, "status": "no_edge_log"},
             "portfolio": [],
             "account": {"equity": 0, "daily_edge_captured": 0, "open_pnl": 0},
         }

@@ -14,6 +14,10 @@ from betting_system.config import load_settings
 from betting_system.logging_utils import get_logger
 from betting_system.markets.base import ForecastMarket
 from betting_system.markets.kalshi import fetch_kalshi_markets
+from betting_system.markets.edge_evaluation import (
+    evaluate_market_edges,
+    record_market_edge_snapshot,
+)
 from betting_system.markets.market_curation import curate_opportunities
 from betting_system.markets.market_fixtures import curated_market_rows
 from betting_system.markets.market_scoring import score_forecast_markets
@@ -115,11 +119,29 @@ def write_market_artifacts(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     ui_cfg = settings.raw.get("prediction_markets", {}).get("ui", {})
+    data_source = "live" if meta.get("is_live") else "fixture_fallback"
+    run_id = str(meta.get("fetched_at") or datetime.now(timezone.utc).isoformat())
+    meta = {**meta, "data_source": data_source}
+    record_market_edge_snapshot(
+        opportunities,
+        data_source=data_source,
+        run_id=run_id,
+        out_dir=out_dir,
+    )
+    edge_summary = evaluate_market_edges(out_dir=out_dir).to_dict()
     hero = opportunities[0] if opportunities else None
+
+    def _market_payload(market: ForecastMarket) -> dict[str, Any]:
+        payload = market.to_dict()
+        payload["data_source"] = data_source
+        return payload
+
     payload = {
         "meta": meta,
-        "hero_pick": hero.to_dict() if hero else None,
-        "opportunities": [m.to_dict() for m in opportunities],
+        "data_source": data_source,
+        "hero_pick": _market_payload(hero) if hero else None,
+        "opportunities": [_market_payload(m) for m in opportunities],
+        "edge_summary": edge_summary,
         "portfolio": DEFAULT_PORTFOLIO,
         "account": {
             "equity": float(ui_cfg.get("starting_equity", 24847.32)),

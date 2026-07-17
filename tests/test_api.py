@@ -24,6 +24,7 @@ def test_picks_today_returns_200_with_schema(api_client, picks_today_payload):
     assert response.status_code == 200
     body = response.json()
     parsed = SlatePicks.model_validate(body)
+    assert body["data_source"] == "fixture_fallback"
     assert parsed.slate_id == picks_today_payload["slate_id"]
     assert parsed.bankroll == picks_today_payload["bankroll"]
     assert len(parsed.parlays) >= 1
@@ -55,7 +56,9 @@ def test_market_opportunities_endpoint(api_client, tmp_path, test_config_path):
     response = api_client.get("/markets/opportunities")
     assert response.status_code == 200
     body = response.json()
+    assert body["data_source"] == "fixture_fallback"
     assert body.get("hero_pick") is not None
+    assert body["hero_pick"]["data_source"] == "fixture_fallback"
     assert len(body.get("opportunities", [])) >= 1
 
 
@@ -64,5 +67,16 @@ def test_market_portfolio_endpoint(api_client):
     response = api_client.get("/markets/portfolio")
     assert response.status_code == 200
     body = response.json()
+    assert "data_source" in body
     assert "portfolio" in body
     assert "account" in body
+
+
+def test_market_edge_summary_endpoint(api_client):
+    """GET /markets/edge-summary returns Edge Desk audit metrics."""
+    response = api_client.get("/markets/edge-summary")
+    assert response.status_code == 200
+    body = response.json()
+    assert "logged_edges" in body
+    assert "resolved_edges" in body
+    assert "status" in body

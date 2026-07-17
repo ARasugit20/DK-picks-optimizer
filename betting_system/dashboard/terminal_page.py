@@ -17,17 +17,22 @@ def _render_top_strip(data: dict[str, Any]) -> None:
     """Sticky account and source freshness strip."""
     meta = data.get("meta", {})
     acct = data.get("account", {})
+    edge_summary = data.get("edge_summary", {})
     is_live = meta.get("is_live", False)
     badge = '<span class="badge-live">LIVE</span>' if is_live else '<span class="badge-fixture">FIXTURE</span>'
+    data_source = meta.get("data_source") or data.get("data_source") or ("live" if is_live else "fixture_fallback")
     sources = ", ".join(meta.get("sources", [])) or "none"
     fetched = meta.get("fetched_at", "unknown")[:19].replace("T", " ")
     fallback = meta.get("fallback_reason") or ""
+    edge_status = edge_summary.get("status", "pending_resolutions")
+    resolved = edge_summary.get("resolved_edges", 0)
+    logged = edge_summary.get("logged_edges", 0)
     st.markdown(
         f"""
         <div class="top-strip">
           <span class="brand">EDGE DESK</span>
           {badge}
-          <span style="color:#8b949e;font-size:0.75rem">Proprietary accuracy model</span>
+          <span style="color:#8b949e;font-size:0.75rem">{data_source.replace('_', ' ').upper()}</span>
           <div style="flex:1"></div>
           <div class="stat-block"><span class="stat-label">Account equity</span>
             <span class="stat-value accent">${acct.get('equity', 0):,.2f}</span></div>
@@ -35,6 +40,8 @@ def _render_top_strip(data: dict[str, Any]) -> None:
             <span class="stat-value positive">+${acct.get('daily_edge_captured', 0):,.2f}</span></div>
           <div class="stat-block"><span class="stat-label">Open P&L</span>
             <span class="stat-value positive">+${acct.get('open_pnl', 0):,.1f}</span></div>
+          <div class="stat-block"><span class="stat-label">Edge audit</span>
+            <span class="stat-value" style="font-size:0.8rem">{resolved}/{logged} · {edge_status}</span></div>
           <div class="stat-block"><span class="stat-label">Source</span>
             <span class="stat-value" style="font-size:0.8rem">{sources} · {fetched}</span></div>
         </div>
