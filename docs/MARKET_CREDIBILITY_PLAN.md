@@ -2,35 +2,36 @@
 
 ## Objective
 
-Position DK-Picks-Optimizer as a recruiter-ready forecasting and allocation system for prediction-market work. The project should stay honest about what is proven today, while making it easy for a Kalshi, Polymarket, or quant hiring team to verify calibration, leakage control, risk sizing, and live-feed readiness.
+Position DK-Picks-Optimizer as a recruiter-ready forecasting and allocation system for prediction-market work. The project should stay honest about what is proven today, while making it easy for a Kalshi, Polymarket, or quant hiring team to verify calibration, leakage control, risk sizing, live-vs-fixture provenance, and Edge Desk market-edge outcomes.
 
-## Current Gap
+## The Real Gap
 
 The codebase already has the core technical pieces:
 
-- LightGBM with isotonic calibration
+- LightGBM with isotonic calibration and sigmoid fallback by ECE threshold
 - Walk-forward backtest machinery
 - Fixture and live-style market pipelines
 - FastAPI and Streamlit surfaces
 - Kelly sizing with exposure and correlation constraints
-- Tests for leakage, calibration, API schemas, markets, and optimizer behavior
+- Edge Desk market fair-value scoring, curation, and durable edge logs
+- Tests for leakage, calibration, API schemas, markets, optimizer behavior, and edge evaluation
 
-The remaining gap is evidence, not model architecture. Recruiters should not have to infer whether the README numbers are demo data, where the logs live, or how sports-prop logic maps to binary event markets.
+The remaining gap is evidence, not model architecture. Recruiters should not have to infer whether README numbers are demo data, whether market rows are live or fixture fallback, or how sports-prop logic maps to binary event markets.
 
-## Phase 1: Merge and Reposition
+## Phase 1: Default-Branch Visibility
 
 Status: in progress.
 
 Actions:
 
-- Merge `feat/edge-desk-terminal` into `main` so the default GitHub page shows the current Edge Desk positioning.
+- Merge `feat/edge-desk-terminal` into `main` so GitHub's default page shows the current Edge Desk positioning.
 - Keep sports props as the proof domain, but describe the system as a market-agnostic probability and allocation engine.
 - Keep the README backtest section explicit that the displayed table is synthetic until replaced by archived walk-forward logs.
 - Link [PRODUCTION_EVIDENCE.md](PRODUCTION_EVIDENCE.md) wherever performance claims appear.
 
 Why it matters: a stale default branch makes the project look unfinished even when the feature branch has the stronger story.
 
-## Phase 2: Proof Trail
+## Phase 2: Sports-Prop Proof Trail
 
 Status: partially complete.
 
@@ -39,28 +40,42 @@ Artifacts already present:
 - [PRODUCTION_EVIDENCE.md](PRODUCTION_EVIDENCE.md)
 - [calibration_plot.png](calibration_plot.png)
 - `betting_system/pipeline/backtest.py`
-- `betting_system/pipeline/run_market_pipeline.py`
-- `betting_system/data/processed/picks_today.json` when generated locally
-- `betting_system/data/processed/market_opportunities.json` when generated locally
+- `betting_system/pipeline/run_pipeline.py`
 
 Next actions:
 
 - Add a committed sample summary generated from a real or clearly labeled fixture run.
 - Keep generated model/data artifacts out of Git unless they are intentionally small, documented evidence files.
-- Add an evidence section to the README only after the source artifact is archived.
+- Replace the synthetic README table only after the source artifact is archived under `docs/evidence/`.
 
 Runbook:
 
 ```bash
 export PYTHONPATH="$(pwd)"
 dk-pipeline --dry-run
-python -m betting_system.pipeline.run_market_pipeline --fixture
 python scripts/plot_calibration.py
 ```
 
 Production runs require live API credentials and should preserve metadata showing whether each output came from live data or fixture fallback.
 
-## Phase 3: Prediction-Market Case Study
+## Phase 3: Edge Desk Market-Edge Audit
+
+Status: instrumented; pending settled live outcomes.
+
+Current implementation:
+
+- `betting_system/markets/edge_evaluation.py` logs market fair-value snapshots and evaluates settled outcomes.
+- `betting_system/pipeline/run_market_pipeline.py` writes `market_edge_log.jsonl` alongside `market_opportunities.json`.
+- `GET /markets/edge-summary` reports logged count, resolved count, Brier, ECE, mean realized edge, and an approximate edge-vs-zero test.
+- The Streamlit top strip surfaces live/fixture provenance and edge-audit status.
+
+Next actions:
+
+- Append real Kalshi/Polymarket settlement outcomes to `market_edge_resolutions.jsonl`.
+- Archive a settled live run under `docs/evidence/edge_desk_<date>/`.
+- Link the archived summary from README once it is based on settled live contracts, not fixtures.
+
+## Phase 4: Prediction-Market Case Study
 
 Status: planned.
 
@@ -77,27 +92,10 @@ Ground the case study in existing code:
 - `betting_system/markets/kalshi.py`
 - `betting_system/markets/polymarket.py`
 - `betting_system/markets/market_scoring.py`
+- `betting_system/markets/edge_evaluation.py`
 - `betting_system/optimizer/portfolio.py`
 
 Do not claim live trading or proprietary market performance unless the evidence exists.
-
-## Phase 4: Interview and Technical Depth
-
-Status: planned.
-
-Expand [INTERVIEW.md](INTERVIEW.md) with prediction-market questions:
-
-- How would this handle a Kalshi binary event?
-- What happens when model probability equals market price?
-- How do you know calibration will hold on a new market?
-
-Create `docs/TECHNICAL_DEPTH.md` for senior ML review:
-
-- Model and calibration choices
-- Time-series split and leakage controls
-- Risk and exposure limits from `betting_system/config.yaml`
-- Failure modes: calibration drift, API fallback, missing model artifacts, thin liquidity
-- Tests that verify the claims
 
 ## Phase 5: Deployment Evidence
 
@@ -118,11 +116,12 @@ Until then, keep Streamlit Cloud setup instructions in the README as deployment 
 ## Verification Checklist
 
 - [x] Production evidence checklist exists
-- [x] README links evidence from the backtest section on `feat/edge-desk-terminal`
+- [x] README links evidence from the backtest section
+- [x] Edge Desk writes durable market-edge logs
+- [x] `/markets/edge-summary` exposes market-layer audit metrics
+- [x] API and dashboard expose `data_source`
 - [ ] `feat/edge-desk-terminal` is visible on `main`
 - [ ] Prediction-market case study exists
-- [ ] Interview guide includes market-specific Q&A
-- [ ] Technical depth document exists
 - [ ] Deployment log exists after a real deployment is available
 - [ ] `ruff check .` passes
 - [ ] `pytest` passes
