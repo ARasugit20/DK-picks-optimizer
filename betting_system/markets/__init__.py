@@ -1,0 +1,1 @@
+"""Forecast market adapters."""
