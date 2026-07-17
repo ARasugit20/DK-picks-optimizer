@@ -18,7 +18,11 @@ data/*.db
 data/raw/
 models/artifacts/
 betting_system/data/raw/
+betting_system/data/processed/
+betting_system/models/
 betting_system/models/leg_model/*.joblib
+docs/DK_Picks_Optimizer_Project_Summary.pdf
+scripts/generate_project_summary_pdf.py
 *.parquet
 *.sqlite
 .DS_Store
