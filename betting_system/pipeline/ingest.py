@@ -53,7 +53,7 @@ def ingest_odds_nba_player_props(
     regions: str = "us",
     markets: str = "player_points,player_rebounds,player_assists",
     odds_format: str = "american",
-    bookmakers: str = "draftkings",
+    bookmakers: str | None = None,
 ) -> Path:
     """
     Pull NBA player prop odds from The Odds API and persist:
@@ -68,6 +68,11 @@ def ingest_odds_nba_player_props(
     api_key = settings.data.get("odds_api_key", "")
     if not api_key:
         raise ValueError("Missing ODDS_API_KEY (set env var or config.yaml data.odds_api_key)")
+
+    if bookmakers is None:
+        bookmakers = settings.raw.get("odds", {}).get(
+            "bookmakers", "draftkings,fanduel,williamhill_us"
+        )
 
     ingested_at = utcnow()
     raw_dir = Path(settings.data["raw_data_path"]) / "odds_api"
@@ -125,7 +130,7 @@ def ingest_odds_nba_player_props(
                     rec = {
                         "game_id": game_id,
                         "market_type": market_type,
-                        "player_id": str(player),  # placeholder until proper ID mapping is added
+                        "player_id": str(player),
                         "line": line_f,
                         "odds_american": odds_am,
                         "implied_prob": float(implied_prob_from_american(odds_am)),

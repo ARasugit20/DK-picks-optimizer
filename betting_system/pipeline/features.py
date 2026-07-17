@@ -9,6 +9,7 @@ import pandas as pd
 
 from betting_system.config import load_settings
 from betting_system.logging_utils import get_logger
+from betting_system.pipeline.sequence_features import apply_lstm_features_to_frame, train_lstm_form_features
 
 
 logger = get_logger(__name__)
@@ -54,8 +55,6 @@ def _add_contextual_features(df: pd.DataFrame, stat_df: pd.DataFrame) -> pd.Data
     if "home_away" in stat_ctx.columns:
         stat_ctx = stat_ctx.copy()
         stat_ctx["home_away"] = _encode_home_away(stat_ctx["home_away"])
-    elif "home_away" in df.columns:
-        stat_ctx["home_away"] = _encode_home_away(df.groupby(["game_id", "player_id"])["home_away"].transform("first"))
     else:
         stat_ctx["home_away"] = 0.5
 
@@ -73,27 +72,85 @@ def _add_contextual_features(df: pd.DataFrame, stat_df: pd.DataFrame) -> pd.Data
     return df
 
 
+def _add_minutes_features(df: pd.DataFrame, stat_df: pd.DataFrame) -> pd.DataFrame:
+    """Add minutes_proxy and rolling minute features from game logs."""
+    if "minutes" not in stat_df.columns:
+        df["minutes_proxy"] = 0.0
+        df["minutes_roll_mean_5"] = 0.0
+        df["minutes_roll_mean_10"] = 0.0
+        return df
+
+    mins = stat_df[["player_id", "game_date", "minutes"]].drop_duplicates()
+    mins["game_date"] = pd.to_datetime(mins["game_date"]).dt.date
+    mins = mins.sort_values(["player_id", "game_date"])
+    mins = _rolling_features(
+        mins,
+        group_cols=["player_id"],
+        value_col="minutes",
+        windows=[5, 10],
+        ewm_span=5,
+    )
+    mins["minutes_proxy"] = mins["minutes_roll_mean_10"].fillna(mins["minutes"])
+    keep = ["player_id", "game_date", "minutes_proxy", "minutes_roll_mean_5", "minutes_roll_mean_10"]
+    df = df.merge(mins[keep], on=["player_id", "game_date"], how="left")
+    df["minutes_proxy"] = df["minutes_proxy"].fillna(df["minutes_roll_mean_5"]).fillna(0.0)
+    df["minutes_roll_mean_5"] = df["minutes_roll_mean_5"].fillna(0.0)
+    df["minutes_roll_mean_10"] = df["minutes_roll_mean_10"].fillna(0.0)
+    return df
+
+
+def _add_opponent_defense_features(df: pd.DataFrame, stat_df: pd.DataFrame) -> pd.DataFrame:
+    """Compute opponent defensive rank vs stat type using past games only."""
+    if "opponent_team_abbr" not in stat_df.columns:
+        df["opp_stat_allowed_roll_mean_10"] = 0.0
+        df["opp_def_rank_vs_stat"] = 0.5
+        return df
+
+    team_allowed = stat_df[
+        ["game_date", "opponent_team_abbr", "stat_type", "actual_value"]
+    ].copy()
+    team_allowed["game_date"] = pd.to_datetime(team_allowed["game_date"]).dt.date
+    team_allowed = team_allowed.rename(columns={"opponent_team_abbr": "defense_team"})
+    team_allowed = team_allowed.sort_values(["defense_team", "stat_type", "game_date"])
+
+    team_allowed["opp_stat_allowed_roll_mean_10"] = team_allowed.groupby(
+        ["defense_team", "stat_type"]
+    )["actual_value"].transform(lambda s: s.shift(1).rolling(10, min_periods=1).mean())
+
+    stat_with_opp = stat_df[["game_id", "player_id", "stat_type", "game_date", "opponent_team_abbr"]].copy()
+    stat_with_opp["game_date"] = pd.to_datetime(stat_with_opp["game_date"]).dt.date
+    stat_with_opp = stat_with_opp.rename(columns={"opponent_team_abbr": "defense_team"})
+    stat_with_opp = stat_with_opp.merge(
+        team_allowed[["defense_team", "stat_type", "game_date", "opp_stat_allowed_roll_mean_10"]],
+        on=["defense_team", "stat_type", "game_date"],
+        how="left",
+    )
+
+    stat_with_opp["opp_stat_allowed_roll_mean_10"] = stat_with_opp["opp_stat_allowed_roll_mean_10"].fillna(
+        stat_with_opp.groupby(["defense_team", "stat_type"])["opp_stat_allowed_roll_mean_10"].transform("median")
+    ).fillna(0.0)
+
+    def _rank_pct(group: pd.Series) -> pd.Series:
+        return group.rank(pct=True, method="average")
+
+    stat_with_opp["opp_def_rank_vs_stat"] = stat_with_opp.groupby(
+        ["stat_type", "game_date"]
+    )["opp_stat_allowed_roll_mean_10"].transform(_rank_pct)
+
+    merge_cols = ["game_id", "player_id", "stat_type", "opp_stat_allowed_roll_mean_10", "opp_def_rank_vs_stat"]
+    df = df.merge(stat_with_opp[merge_cols], on=["game_id", "player_id", "stat_type"], how="left")
+    df["opp_stat_allowed_roll_mean_10"] = df["opp_stat_allowed_roll_mean_10"].fillna(0.0)
+    df["opp_def_rank_vs_stat"] = df["opp_def_rank_vs_stat"].fillna(0.5)
+    return df
+
+
 def build_features(
     *,
     stat_results_path: str | Path,
     odds_parquet_path: str | Path,
     out_path: str | Path | None = None,
 ) -> Path:
-    """Build leakage-free player-game feature rows for training and inference.
-
-    Joins stat results with posted odds, adds shift-1 rolling stats and contextual
-    fields (home_away, days_rest, back_to_back).
-
-    Args:
-        stat_results_path: Parquet/CSV with game_id, player_id, stat_type, actual_value,
-            hit, game_date, and optional home_away.
-        odds_parquet_path: Parquet with game_id, player_id, market_type, line,
-            implied_prob, ingested_at, odds_american.
-        out_path: Optional output parquet path.
-
-    Returns:
-        Path to written features parquet.
-    """
+    """Build leakage-free player-game feature rows for training and inference."""
     settings = load_settings()
     processed_dir = Path(settings.data["processed_data_path"])
     processed_dir.mkdir(parents=True, exist_ok=True)
@@ -115,12 +172,20 @@ def build_features(
 
     stat_df["game_date"] = pd.to_datetime(stat_df["game_date"]).dt.date
     odds_df["ingested_at"] = pd.to_datetime(odds_df["ingested_at"])
-
-    df = odds_df.merge(
-        stat_df[["game_id", "player_id", "stat_type", "actual_value", "hit", "game_date"]],
-        on=["game_id", "player_id"],
-        how="inner",
+    odds_df = odds_df.copy()
+    odds_df["stat_type"] = (
+        odds_df["market_type"]
+        .str.replace("player_", "", regex=False)
+        .str.replace("_over", "", regex=False)
+        .str.replace("_under", "", regex=False)
     )
+
+    stat_cols = ["game_id", "player_id", "stat_type", "actual_value", "hit", "game_date"]
+    for c in ("minutes", "opponent_team_abbr", "player_name", "team_abbr"):
+        if c in stat_df.columns:
+            stat_cols.append(c)
+
+    df = odds_df.merge(stat_df[stat_cols], on=["game_id", "player_id", "stat_type"], how="inner")
 
     df["market_family"] = df["market_type"].str.replace("_over", "").str.replace("_under", "", regex=False)
     df["is_over"] = df["market_type"].str.contains("_over")
@@ -146,10 +211,12 @@ def build_features(
     df["season_progress"] = (df["game_number_season"] / season_games).clip(0, 1)
 
     df = _add_contextual_features(df, stat_df)
+    df = _add_minutes_features(df, stat_df)
+    df = _add_opponent_defense_features(df, stat_df)
 
-    for col in ["opp_def_rank_vs_stat", "minutes_proxy"]:
-        if col not in df.columns:
-            df[col] = 0.0
+    lstm_feats = train_lstm_form_features(stat_df)
+    if lstm_feats:
+        df = apply_lstm_features_to_frame(df, lstm_feats)
 
     df["opening_implied_prob"] = df.groupby(["game_id", "market_type", "player_id", "line"])["implied_prob"].transform("first")
     df["opening_odds_american"] = df.groupby(["game_id", "market_type", "player_id", "line"])["odds_american"].transform("first")
@@ -183,10 +250,18 @@ def build_features(
         "home_away",
         "days_rest",
         "back_to_back",
-        "opp_def_rank_vs_stat",
         "minutes_proxy",
+        "minutes_roll_mean_5",
+        "minutes_roll_mean_10",
+        "opp_stat_allowed_roll_mean_10",
+        "opp_def_rank_vs_stat",
     ]
-    df = df[keep_cols].copy()
+    for c in ["lstm_pred_actual_value", "lstm_uncertainty"]:
+        if c in df.columns:
+            keep_cols.append(c)
+    keep_cols.extend([c for c in df.columns if c.startswith("lstm_form_embedding_")])
+
+    df = df[[c for c in keep_cols if c in df.columns]].copy()
 
     out_path = Path(out_path) if out_path is not None else processed_dir / "features.parquet"
     df.to_parquet(out_path, index=False)

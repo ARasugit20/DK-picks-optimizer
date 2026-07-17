@@ -16,24 +16,30 @@ def feature_inputs(tmp_path):
     """Minimal stat + odds frames for build_features."""
     stat = pd.DataFrame(
         {
-            "game_id": ["g1", "g2"],
-            "player_id": ["p1", "p1"],
-            "stat_type": ["points", "points"],
-            "actual_value": [22.0, 28.0],
-            "hit": [True, False],
-            "game_date": [date(2024, 1, 1), date(2024, 1, 3)],
-            "home_away": ["home", "away"],
+            "game_id": ["g1", "g2", "g3"],
+            "player_id": ["p1", "p1", "p1"],
+            "player_name": ["Test Player"] * 3,
+            "team_abbr": ["TST"] * 3,
+            "opponent_team_abbr": ["OPP", "OPP", "OPP"],
+            "stat_type": ["points", "points", "points"],
+            "actual_value": [22.0, 28.0, 19.0],
+            "hit": [True, False, True],
+            "game_date": [date(2024, 1, 1), date(2024, 1, 3), date(2024, 1, 4)],
+            "home_away": ["home", "away", "home"],
+            "minutes": [32.0, 35.0, 28.0],
         }
     )
     odds = pd.DataFrame(
         {
-            "game_id": ["g1", "g2"],
-            "player_id": ["p1", "p1"],
-            "market_type": ["player_points_over", "player_points_over"],
-            "line": [20.5, 25.5],
-            "odds_american": [-110, -115],
-            "implied_prob": [0.52, 0.53],
-            "ingested_at": pd.to_datetime(["2024-01-01T10:00:00Z", "2024-01-03T10:00:00Z"]),
+            "game_id": ["g1", "g2", "g3"],
+            "player_id": ["p1", "p1", "p1"],
+            "market_type": ["player_points_over"] * 3,
+            "line": [20.5, 25.5, 18.5],
+            "odds_american": [-110, -115, -108],
+            "implied_prob": [0.52, 0.53, 0.51],
+            "ingested_at": pd.to_datetime(
+                ["2024-01-01T10:00:00Z", "2024-01-03T10:00:00Z", "2024-01-04T10:00:00Z"]
+            ),
         }
     )
     stat_path = tmp_path / "stat.parquet"
@@ -56,4 +62,4 @@ def test_build_features_writes_parquet(feature_inputs, test_config_path, tmp_pat
     df = pd.read_parquet(out)
     assert "actual_value_roll_mean_3" in df.columns
     assert "hit" in df.columns
-    assert len(df) == 2
+    assert len(df) == 3

@@ -1,4 +1,4 @@
-"""End-to-end pipeline orchestrator: ingest → features → train → predict."""
+"""End-to-end pipeline orchestrator: ingest -> features -> train -> predict."""
 
 from __future__ import annotations
 
@@ -17,6 +17,13 @@ from betting_system.logging_utils import get_logger
 from betting_system.pipeline.features import build_features
 from betting_system.pipeline.fixtures_loader import materialize_dry_run_fixtures
 from betting_system.pipeline.ingest import ingest_odds_nba_player_props
+from betting_system.pipeline.ingest_stats import ingest_nba_stats
+from betting_system.pipeline.line_shop import select_best_lines
+from betting_system.pipeline.player_mapping import (
+    apply_player_map,
+    build_player_id_map,
+    validate_join_rate,
+)
 from betting_system.pipeline.predict_slate import generate_picks_today
 from betting_system.pipeline.train import train_market_type
 
@@ -24,6 +31,24 @@ from betting_system.pipeline.train import train_market_type
 logger = get_logger(__name__)
 
 MARKET_TYPE = "player_points_over"
+
+
+def _ids_already_mapped(odds_df: pd.DataFrame, stat_df: pd.DataFrame) -> bool:
+    """True when odds player_id values already exist in stat_results."""
+    stat_ids = set(stat_df["player_id"].astype(str))
+    odds_ids = set(odds_df["player_id"].astype(str))
+    return odds_ids.issubset(stat_ids) and len(odds_ids) > 0
+
+
+def _prepare_odds(odds_df: pd.DataFrame, stat_df: pd.DataFrame) -> pd.DataFrame:
+    """Apply player mapping, validate join rate, and line-shop best prices."""
+    if not _ids_already_mapped(odds_df, stat_df):
+        map_df = build_player_id_map(odds_df, stat_df)
+        odds_df = apply_player_map(odds_df, map_df)
+    min_rate = float(load_settings().raw.get("mapping", {}).get("min_join_rate", 0.3))
+    if not odds_df.empty:
+        validate_join_rate(odds_df, stat_df, min_rate=min_rate if min_rate < 1 else 0.3)
+    return select_best_lines(odds_df)
 
 
 def _train_dry_run(features_path: Path, *, holdout_start: date) -> Path:
@@ -45,8 +70,6 @@ def _train_dry_run(features_path: Path, *, holdout_start: date) -> Path:
 
 def _train_quick_fallback(features_path: Path) -> Path:
     """Fallback trainer when temporal split fails on tiny fixtures."""
-    import pandas as pd
-
     from betting_system.pipeline.train import _select_features
 
     settings = load_settings()
@@ -80,15 +103,21 @@ def run_pipeline(*, dry_run: bool = False, bankroll: float = 1000.0) -> Path:
     if dry_run:
         logger.info("Dry-run: using synthetic fixtures")
         stat_path, odds_path = materialize_dry_run_fixtures(processed / "dry_run")
+        stat_df = pd.read_parquet(stat_path)
+        odds_df = pd.read_parquet(odds_path)
+        odds_df = _prepare_odds(odds_df, stat_df)
+        odds_df.to_parquet(odds_path, index=False)
     else:
+        season = settings.raw.get("stats", {}).get("season", "2024-25")
+        stat_path = ingest_nba_stats(season=season, no_lines=True)
+        stat_df = pd.read_parquet(stat_path)
         today = date.today().isoformat()
         odds_path = ingest_odds_nba_player_props(date=today)
-        stat_path = processed / "stat_results.parquet"
-        if not stat_path.exists():
-            raise FileNotFoundError(
-                "Live pipeline requires stat_results.parquet in processed/. "
-                "Run stats ingest or use --dry-run."
-            )
+        odds_df = pd.read_parquet(odds_path)
+        odds_df = _prepare_odds(odds_df, stat_df)
+        shopped_path = processed / "odds_shopped.parquet"
+        odds_df.to_parquet(shopped_path, index=False)
+        odds_path = shopped_path
 
     features_path = build_features(
         stat_results_path=stat_path,
@@ -130,7 +159,7 @@ def main() -> None:
     parser.add_argument("--bankroll", type=float, default=1000.0, help="Capital allocation baseline")
     args = parser.parse_args()
     out = run_pipeline(dry_run=args.dry_run, bankroll=args.bankroll)
-    logger.info("Pipeline complete → %s", out)
+    logger.info("Pipeline complete -> %s", out)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,8 @@
+# Manual overrides: odds feed name -> NBA player_id (string)
+aliases:
+  "Nikola Jokic": "203999"
+  "N. Jokic": "203999"
+  "Luka Doncic": "1629029"
+  "L. Doncic": "1629029"
+  "S. Gilgeous-Alexander": "1628983"
+  "Shai Gilgeous-Alexander": "1628983"

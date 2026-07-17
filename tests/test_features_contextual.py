@@ -13,16 +13,20 @@ from betting_system.pipeline.features import build_features
 
 @pytest.fixture
 def contextual_inputs(tmp_path):
-    """Stat + odds frames with home_away for contextual features."""
+    """Stat + odds frames with home_away, minutes, opponent for contextual features."""
     stat = pd.DataFrame(
         {
             "game_id": ["g1", "g2", "g3"],
             "player_id": ["p1", "p1", "p1"],
+            "player_name": ["Test Player"] * 3,
+            "team_abbr": ["TST"] * 3,
+            "opponent_team_abbr": ["OPP", "OPP", "OPP"],
             "stat_type": ["points", "points", "points"],
             "actual_value": [22.0, 28.0, 19.0],
             "hit": [True, False, True],
             "game_date": [date(2024, 1, 1), date(2024, 1, 3), date(2024, 1, 4)],
             "home_away": ["home", "away", "home"],
+            "minutes": [30.0, 34.0, 29.0],
         }
     )
     odds = pd.DataFrame(
@@ -46,7 +50,7 @@ def contextual_inputs(tmp_path):
 
 
 def test_contextual_features_not_null(contextual_inputs, test_config_path, tmp_path):
-    """home_away and days_rest must be populated after build_features."""
+    """home_away, days_rest, minutes_proxy, opp_def_rank_vs_stat must be populated."""
     os.environ["BETTING_CONFIG_PATH"] = str(test_config_path)
     stat_path, odds_path = contextual_inputs
     out = build_features(
@@ -57,4 +61,6 @@ def test_contextual_features_not_null(contextual_inputs, test_config_path, tmp_p
     df = pd.read_parquet(out)
     assert df["home_away"].notna().all()
     assert df["days_rest"].notna().all()
+    assert df["minutes_proxy"].notna().all()
+    assert df["opp_def_rank_vs_stat"].notna().all()
     assert "back_to_back" in df.columns

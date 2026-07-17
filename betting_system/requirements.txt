@@ -20,3 +20,5 @@ pytest
 pytest-cov
 shap
 matplotlib
+nba_api
+scipy
