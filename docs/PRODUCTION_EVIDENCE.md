@@ -53,6 +53,32 @@ If live APIs are unavailable, the dashboard will use fixture fallback. Keep the 
 
 ## 3. Production Readiness Notes
 
+## 3. Edge Desk Market Edge Audit
+
+Goal: prove model-vs-market edge is not just a fixture artifact or UI claim.
+
+Required artifacts:
+
+- `betting_system/data/processed/market_edge_log.jsonl`
+- `betting_system/data/processed/market_edge_resolutions.jsonl` once contracts settle
+- `GET /markets/edge-summary`
+- Edge audit badge in the Streamlit terminal top strip
+
+Runbook:
+
+```bash
+export PYTHONPATH="$(pwd)"
+python -m betting_system.pipeline.run_market_pipeline --fixture
+uvicorn betting_system.api.main:app --reload
+curl localhost:8000/markets/edge-summary
+```
+
+Every scored market snapshot records `market_id`, `market_price`, `fair_value_prob`, `edge`, `data_source`, and timestamp. When a Kalshi or Polymarket contract settles, append the realized YES/NO outcome with `record_market_resolution(...)`; the summary endpoint then reports market-layer Brier, ECE, mean realized edge, and an approximate one-sample edge-vs-zero test.
+
+Fixture runs are valid instrumentation tests, not production performance claims.
+
+## 4. Production Readiness Notes
+
 Add these only when measured:
 
 - API latency percentiles for `/picks/today` and `/markets/opportunities`

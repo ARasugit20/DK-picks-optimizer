@@ -23,6 +23,7 @@ Harden this **probabilistic performance forecasting** system into a production-g
 | `docs/INTERVIEW.md` | **DONE** | 6 × 60s Q&As |
 | Production evidence checklist | **DONE** | Artifact trail for real backtest + live feed proof |
 | Market credibility plan | **DONE** | Phase plan for prediction-market recruiter proof |
+| Edge Desk market edge audit | **DONE** | Durable fair-value log + `/markets/edge-summary` |
 | SHAP dashboard panel | **DONE** | Model Health page |
 | End-to-end pipeline orchestrator | **DONE** | `dk-pipeline --dry-run` |
 | Contextual feature placeholders | **DONE** | `home_away`, `days_rest`, `back_to_back` |
@@ -34,6 +35,7 @@ Harden this **probabilistic performance forecasting** system into a production-g
 - [ ] Replace synthetic README backtest rows with real walk-forward logs
 - [ ] Live Odds API ingest in production (requires API key + stats feed)
 - [ ] Streamlit Cloud URL in README badge (user-specific deploy)
+- [ ] Decide whether `docs/DK_Picks_Optimizer_Project_Summary.pdf` and `scripts/generate_project_summary_pdf.py` are public artifacts; currently they are local working artifacts, not part of the tracked evidence trail
 
 ## Pipeline Data Flow
 

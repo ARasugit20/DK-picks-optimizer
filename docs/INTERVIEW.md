@@ -27,3 +27,7 @@ Separate the path: async ingest workers write Parquet/S3; feature store serves p
 ## How do you prove the results are real and not demo numbers?
 
 The README labels synthetic rows as demonstration data. Production claims should come from the evidence trail in `docs/PRODUCTION_EVIDENCE.md`: archived walk-forward JSONL logs, regenerated calibration plots, live-feed metadata showing whether APIs or fixtures were used, and measured API readiness metrics. I would rather show a modest real holdout than an impressive synthetic table, because the interview value is leakage control, calibration discipline, and reproducible allocation decisions.
+
+## How do you know Edge Desk's edge is real and not fixture noise?
+
+I log every market opportunity at scoring time with its market price, fair-value probability, edge, data source, and timestamp. Once a contract settles, I append the realized YES/NO outcome and evaluate that market-layer log separately from the sports-prop model. The `/markets/edge-summary` endpoint reports resolved count, Brier, ECE, mean realized edge, and an approximate one-sample test of realized edge versus zero. Fixture rows prove the audit wiring; live claims require settled live contracts in `market_edge_resolutions.jsonl`.
