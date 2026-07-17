@@ -23,3 +23,7 @@ Brier score is mean squared error between predicted probability and the binary o
 ## How would you scale this to real-time with 100k users?
 
 Separate the path: async ingest workers write Parquet/S3; feature store serves precomputed rolling stats; model inference runs in a stateless FastAPI pool with cached artifacts; the portfolio optimizer is CPU-cheap and horizontally scaled. Use Redis for slate snapshots, CDN for dashboard reads, and queue-based retraining — not synchronous train on request. Postgres or Dynamo for audit logs; rate-limit `/picks/today` per API key. Walk-forward metrics stay offline in batch; online serving only loads the latest blessed model version.
+
+## How do you prove the results are real and not demo numbers?
+
+The README labels synthetic rows as demonstration data. Production claims should come from the evidence trail in `docs/PRODUCTION_EVIDENCE.md`: archived walk-forward JSONL logs, regenerated calibration plots, live-feed metadata showing whether APIs or fixtures were used, and measured API readiness metrics. I would rather show a modest real holdout than an impressive synthetic table, because the interview value is leakage control, calibration discipline, and reproducible allocation decisions.

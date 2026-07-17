@@ -3,7 +3,26 @@
 [![CI](https://github.com/ARasugit20/DK-picks-optimizer/actions/workflows/ci.yml/badge.svg)](https://github.com/ARasugit20/DK-picks-optimizer/actions/workflows/ci.yml)
 [![Live Demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://dk-picks-optimizer.streamlit.app/)
 
-End-to-end ML pipeline for **probabilistic performance forecasting** and **constrained capital allocation** on correlated multi-leg portfolios · LightGBM · isotonic calibration · walk-forward backtest · FastAPI · Streamlit
+End-to-end ML pipeline for **probabilistic performance forecasting** and **constrained capital allocation** on correlated multi-leg portfolios · LightGBM · isotonic calibration · walk-forward backtest · FastAPI · Streamlit **Edge Desk** prediction-market terminal
+
+## Edge Desk — Prediction Market Terminal
+
+Live-style scanner for Kalshi/Polymarket event contracts with model-vs-market edge, hero picks, order ticket, and portfolio strip.
+
+```bash
+# Ingest + score markets (live APIs with fixture fallback)
+PYTHONPATH=. python3.13 -m betting_system.pipeline.run_market_pipeline --fixture
+
+# Or refresh live Polymarket + Kalshi discovery
+PYTHONPATH=. python3.13 -m betting_system.pipeline.run_market_pipeline
+
+# Dashboard
+streamlit run streamlit_app.py
+
+# API
+uvicorn betting_system.api.main:app --reload
+curl localhost:8000/markets/opportunities
+```
 
 ## What makes this different from typical forecast dashboards
 
@@ -35,7 +54,7 @@ flowchart TB
 
 ## Backtest Results
 
-Walk-forward holdout (synthetic demonstration slate — replace with your own `pipeline/backtest.py` logs for production numbers).
+Walk-forward holdout (synthetic demonstration slate — replace with archived `betting_system.pipeline.backtest` logs before claiming production performance). See [Production Evidence Checklist](docs/PRODUCTION_EVIDENCE.md) for the artifact trail.
 
 | Week | ROI (%) | Hit Rate (%) | Brier Score | Kelly Stake ($) |
 |------|---------|--------------|-------------|-----------------|
@@ -123,7 +142,7 @@ tests/                  # leakage, ECE, Kelly cap, API schema
 
 ## Interview prep
 
-See [docs/INTERVIEW.md](docs/INTERVIEW.md) for six 60-second answers (walk-forward, isotonic vs Platt, Kelly limits, leakage, Brier, scale).
+See [docs/INTERVIEW.md](docs/INTERVIEW.md) for 60-second answers (walk-forward, isotonic vs Platt, Kelly limits, leakage, Brier, scale), [docs/PRODUCTION_EVIDENCE.md](docs/PRODUCTION_EVIDENCE.md) for the evidence checklist, and [docs/MARKET_CREDIBILITY_PLAN.md](docs/MARKET_CREDIBILITY_PLAN.md) for the prediction-market credibility roadmap.
 
 ## License
 

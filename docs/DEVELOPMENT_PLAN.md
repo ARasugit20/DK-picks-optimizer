@@ -21,6 +21,8 @@ Harden this **probabilistic performance forecasting** system into a production-g
 | Professional framing / language | **DONE** | Slate Optimizer, allocation terminology |
 | Tests (leakage, ECE, Kelly, API) | **DONE** | Root + `betting_system/tests/` |
 | `docs/INTERVIEW.md` | **DONE** | 6 × 60s Q&As |
+| Production evidence checklist | **DONE** | Artifact trail for real backtest + live feed proof |
+| Market credibility plan | **DONE** | Phase plan for prediction-market recruiter proof |
 | SHAP dashboard panel | **DONE** | Model Health page |
 | End-to-end pipeline orchestrator | **DONE** | `dk-pipeline --dry-run` |
 | Contextual feature placeholders | **DONE** | `home_away`, `days_rest`, `back_to_back` |
