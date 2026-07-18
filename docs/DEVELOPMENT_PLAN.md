@@ -29,6 +29,7 @@ Harden this **probabilistic performance forecasting** system into a production-g
 | Contextual feature placeholders | **DONE** | `home_away`, `days_rest`, `back_to_back` |
 | `betting_system/tests/` in CI | **DONE** | Unified testpaths, cov ≥ 80% |
 | Docstrings + plan sync | **DONE** | Google-style on public pipeline/optimizer APIs |
+| Test & validation hardening | **DONE** | Offline market smoke, optimizer guardrails, config validator |
 
 ## Remaining (optional polish)
 
@@ -57,6 +58,7 @@ flowchart TD
 ## Rules
 
 - Run `pytest` after every change
+- Run focused validation from [`docs/VALIDATION.md`](./VALIDATION.md) for pipeline, optimizer, or config changes
 - No magic numbers — `betting_system/config.yaml`
 - Google-style docstrings on public functions
 - Do NOT add new ML model types
