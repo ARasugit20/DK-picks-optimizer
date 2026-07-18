@@ -82,3 +82,12 @@ def test_validate_config_cli_failure(tmp_path: Path, repo_root: Path):
     assert result.exit_code != 0
     assert "config invalid" in result.output
     assert "max_stake_pct" in result.output
+
+
+def test_validate_config_cli_missing_file(tmp_path: Path):
+    """dk-picks validate-config reports a missing config path."""
+    missing = tmp_path / "missing.yaml"
+    result = CliRunner().invoke(app, ["validate-config", "--path", str(missing)])
+    assert result.exit_code != 0
+    assert "config invalid" in result.output
+    assert "Config not found" in result.output
