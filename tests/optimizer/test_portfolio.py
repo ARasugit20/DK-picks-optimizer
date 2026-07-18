@@ -48,6 +48,22 @@ def test_correlation_discount_reduces_combined_probability(tmp_path: Path, synth
     assert discounted["ev_per_unit"] < base["ev_per_unit"]
 
 
+def test_correlation_above_configured_cap_rejects_pair(tmp_path: Path, synthetic_worthy_legs):
+    """Pairs above correlation_max_pair are excluded from candidates."""
+    cfg = load_settings().model
+    corr = min(float(cfg["correlation_max_pair"]) + 0.01, 1.0)
+    corr_path = _corr_csv(tmp_path, synthetic_worthy_legs, corr)
+
+    candidates = build_parlay_candidates(
+        synthetic_worthy_legs[:2],
+        corr_path=corr_path,
+        min_legs=2,
+        max_legs=2,
+    )
+
+    assert candidates == []
+
+
 def test_portfolio_respects_max_parlays_per_slate(synthetic_worthy_legs):
     """Optimizer does not return more parlays than configured."""
     cfg = load_settings().model
