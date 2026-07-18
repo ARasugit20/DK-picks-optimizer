@@ -52,3 +52,11 @@ ruff check .
 ```
 
 The CI target is at least 80% coverage.
+
+## Probability-to-Capital Layer
+
+```bash
+pytest tests/test_order_book.py tests/test_market_ledger.py tests/test_money_weighted.py tests/test_api.py -v
+```
+
+Verifies executable edge, ledger settlement, money-weighted calibration, and `/markets/pnl-attribution`.

@@ -22,6 +22,7 @@ streamlit run streamlit_app.py
 # API
 uvicorn betting_system.api.main:app --reload
 curl localhost:8000/markets/opportunities
+curl localhost:8000/markets/pnl-attribution
 ```
 
 ## What makes this different from typical forecast dashboards
@@ -33,6 +34,7 @@ curl localhost:8000/markets/opportunities
 | **Correlation penalty on portfolios** | Same-game / same-player legs are down-weighted |
 | **Portfolio optimizer** | Selects singles and correlated multi-leg portfolios under exposure limits |
 | **Walk-forward backtest + CLV** | ROI, Brier score, and closing-line value on unseen slates |
+| **Probability-to-capital audit** | Links executable edge, position sizing, settlement, and money-weighted PnL |
 
 ## Architecture
 
@@ -151,7 +153,7 @@ tests/                  # leakage, ECE, Kelly cap, API schema
 
 ## Interview prep
 
-See [docs/INTERVIEW.md](docs/INTERVIEW.md) for 60-second answers (walk-forward, isotonic vs Platt, Kelly limits, leakage, Brier, scale), [docs/PRODUCTION_EVIDENCE.md](docs/PRODUCTION_EVIDENCE.md) for the evidence checklist, and [docs/MARKET_CREDIBILITY_PLAN.md](docs/MARKET_CREDIBILITY_PLAN.md) for the prediction-market credibility roadmap.
+See [docs/INTERVIEW.md](docs/INTERVIEW.md) for 60-second answers (walk-forward, isotonic vs Platt, Kelly limits, leakage, Brier, scale), [docs/PRODUCTION_EVIDENCE.md](docs/PRODUCTION_EVIDENCE.md) for the evidence checklist, [docs/MARKET_CREDIBILITY_PLAN.md](docs/MARKET_CREDIBILITY_PLAN.md) for the prediction-market credibility roadmap, and [docs/PROBABILITY_TO_CAPITAL.md](docs/PROBABILITY_TO_CAPITAL.md) for the capital-allocation engine framing.
 
 ## License
 
