@@ -86,6 +86,12 @@ Regenerate after backtest:
 python scripts/plot_calibration.py
 ```
 
+Generate an offline synthetic prediction-market slate for smoke tests:
+
+```bash
+python scripts/generate_synthetic_slate.py --out /tmp/synthetic_prediction_markets.parquet
+```
+
 ## Quick start
 
 ```bash
