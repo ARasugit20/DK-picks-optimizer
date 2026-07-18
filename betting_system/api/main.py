@@ -8,6 +8,8 @@ from fastapi import FastAPI, HTTPException
 
 from betting_system.config import load_settings
 from betting_system.markets.edge_evaluation import evaluate_market_edges
+from betting_system.markets.ledger import read_trades
+from betting_system.markets.money_weighted import summarize_money_weighted_trades
 
 
 app = FastAPI(title="Probabilistic Forecasting & Portfolio API", version="0.1.0")
@@ -123,6 +125,17 @@ def market_portfolio() -> Any:
 def market_edge_summary() -> Any:
     """Return Edge Desk outcome-validation summary for logged market edges."""
     return evaluate_market_edges().to_dict()
+
+
+@app.get("/markets/pnl-attribution")
+def market_pnl_attribution() -> Any:
+    """Return money-weighted PnL and calibration attribution for market trades."""
+    trades = read_trades()
+    summary = summarize_money_weighted_trades(trades)
+    return {
+        "trade_count": len(trades),
+        "money_weighted": summary.to_dict(),
+    }
 
 
 @app.get("/markets/{market_id}")
