@@ -50,6 +50,17 @@ def test_missing_required_key_fails(tmp_path: Path, repo_root: Path):
         validate_config(path)
 
 
+def test_parlay_cap_above_slate_exposure_fails(tmp_path: Path, repo_root: Path):
+    """Inconsistent exposure caps fail with a readable message."""
+    path = _write_config(
+        tmp_path,
+        repo_root,
+        lambda raw: raw["model"].update({"max_parlay_pct": 0.25, "max_slate_exposure": 0.10}),
+    )
+    with pytest.raises(ValueError, match="max_parlay_pct must be <= max_slate_exposure"):
+        validate_config(path)
+
+
 def test_validate_config_cli_success(repo_root: Path):
     """dk-picks validate-config prints config OK for the repo config."""
     result = CliRunner().invoke(
