@@ -125,6 +125,8 @@ pytest --cov=. --cov-fail-under=80
 ruff check .
 ```
 
+See [docs/VALIDATION.md](docs/VALIDATION.md) for focused smoke-test, optimizer, and config-validation runbooks.
+
 ## Project layout
 
 ```
