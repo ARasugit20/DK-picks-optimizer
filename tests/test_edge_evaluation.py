@@ -46,3 +46,31 @@ def test_market_edge_log_pending_and_resolved_summary(tmp_path):
     assert resolved.status == "resolved"
     assert resolved.brier is not None
     assert resolved.mean_edge_realized is not None
+
+
+def test_market_edge_evaluation_uses_latest_resolution(tmp_path):
+    """If a resolution is corrected, the newest row is used."""
+    market = ForecastMarket(
+        market_id="m2",
+        event_id="e2",
+        outcome="YES",
+        market_price=0.40,
+        model_prob=0.70,
+        edge=0.30,
+        question="Corrected fixture market resolves yes?",
+        venue="fixture",
+    )
+    record_market_edge_snapshot(
+        [market],
+        data_source="fixture_fallback",
+        run_id="test-run",
+        out_dir=tmp_path,
+    )
+    record_market_resolution(market_id="m2", realized=False, source="initial", out_dir=tmp_path)
+    initial = evaluate_market_edges(out_dir=tmp_path)
+    record_market_resolution(market_id="m2", realized=True, source="correction", out_dir=tmp_path)
+    corrected = evaluate_market_edges(out_dir=tmp_path)
+
+    assert initial.mean_edge_realized == -0.40
+    assert corrected.mean_edge_realized == 0.60
+    assert corrected.brier < initial.brier
