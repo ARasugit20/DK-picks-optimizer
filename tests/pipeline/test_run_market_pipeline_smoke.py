@@ -42,6 +42,16 @@ def test_generate_synthetic_slate_writes_expected_schema(tmp_path: Path):
     assert pd.api.types.is_float_dtype(df["mark_price"])
     assert pd.api.types.is_float_dtype(df["model_p_hit"])
     assert df["market_id"].is_unique
+    assert df["close_date"].notna().all()
+
+
+def test_generate_synthetic_slate_is_seed_deterministic(tmp_path: Path):
+    """Same seed produces the same synthetic slate values."""
+    first = tmp_path / "first.parquet"
+    second = tmp_path / "second.parquet"
+    generate_synthetic_slate(out_path=first, seed=11)
+    generate_synthetic_slate(out_path=second, seed=11)
+    pd.testing.assert_frame_equal(pd.read_parquet(first), pd.read_parquet(second))
 
 
 def test_run_market_pipeline_fixture_smoke_no_network(monkeypatch, isolated_market_config):
