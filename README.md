@@ -108,6 +108,7 @@ dk-pipeline --dry-run          # fixtures → features → train → picks_today
 streamlit run streamlit_app.py # Slate Optimizer dashboard
 
 # Legacy dk_picks CLI
+dk-picks validate-config
 dk-picks init-db
 dk-picks ingest-odds --sport basketball_nba
 dk-picks train --sport nba

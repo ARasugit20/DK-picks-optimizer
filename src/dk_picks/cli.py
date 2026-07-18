@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 from rich.table import Table
 
@@ -294,6 +295,26 @@ def recommend(
 def report():
     r = calibration_report()
     console.print(r)
+
+
+@app.command("validate-config")
+def validate_config_cmd(
+    path: Path = typer.Option(
+        Path("betting_system/config.yaml"),
+        "--path",
+        "-p",
+        help="Path to betting_system config YAML",
+    ),
+):
+    """Validate betting_system/config.yaml and print a concise status."""
+    from betting_system.config import validate_config
+
+    try:
+        validate_config(path)
+    except (FileNotFoundError, ValidationError, ValueError) as exc:
+        console.print(f"[red]config invalid:[/red] {exc}")
+        raise typer.Exit(1) from exc
+    console.print("[green]config OK[/green]")
 
 
 if __name__ == "__main__":
