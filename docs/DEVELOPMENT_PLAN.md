@@ -24,6 +24,7 @@ Harden this **probabilistic performance forecasting** system into a production-g
 | Production evidence checklist | **DONE** | Artifact trail for real backtest + live feed proof |
 | Market credibility plan | **DONE** | Phase plan for prediction-market recruiter proof |
 | Edge Desk market edge audit | **DONE** | Durable fair-value log + `/markets/edge-summary` |
+| Probability-to-capital layer | **DONE** | Order-book execution, trade ledger, money-weighted PnL attribution |
 | SHAP dashboard panel | **DONE** | Model Health page |
 | End-to-end pipeline orchestrator | **DONE** | `dk-pipeline --dry-run` |
 | Contextual feature placeholders | **DONE** | `home_away`, `days_rest`, `back_to_back` |
