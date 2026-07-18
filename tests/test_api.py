@@ -80,3 +80,27 @@ def test_market_edge_summary_endpoint(api_client):
     assert "logged_edges" in body
     assert "resolved_edges" in body
     assert "status" in body
+
+
+def test_market_pnl_attribution_endpoint(api_client, seeded_processed_dir):
+    """GET /markets/pnl-attribution returns money-weighted trade metrics."""
+    from betting_system.markets.ledger import record_trade, settle_trade
+
+    record_trade(
+        trade_id="api-trade-1",
+        market_id="api-market-1",
+        side="YES",
+        quantity=100,
+        average_price=0.40,
+        fair_value_prob=0.55,
+        data_source="fixture_fallback",
+        out_dir=seeded_processed_dir,
+    )
+    settle_trade(trade_id="api-trade-1", realized=True, out_dir=seeded_processed_dir)
+
+    response = api_client.get("/markets/pnl-attribution")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["trade_count"] == 2
+    assert body["money_weighted"]["resolved_trades"] == 1
+    assert body["money_weighted"]["total_pnl"] == 60.0
