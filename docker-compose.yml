@@ -1,0 +1,24 @@
+services:
+  api:
+    build: .
+    command: uvicorn betting_system.api.main:app --host 0.0.0.0 --port 8000
+    environment:
+      BETTING_CONFIG_PATH: betting_system/config.yaml
+      PYTHONPATH: /app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+
+  dashboard:
+    build: .
+    command: streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    environment:
+      BETTING_CONFIG_PATH: betting_system/config.yaml
+      PYTHONPATH: /app
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    depends_on:
+      - api
