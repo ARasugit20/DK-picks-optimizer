@@ -9,13 +9,16 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
@@ -25,6 +28,14 @@ jobs:
 
       - name: Ruff
         run: ruff check .
+
+      - name: Validate config
+        run: python -m dk_picks.cli validate-config --path betting_system/config.yaml
+
+      - name: Focused smoke tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: make smoke
 
       - name: Pytest with coverage
         env:
