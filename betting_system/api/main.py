@@ -20,6 +20,13 @@ def _processed_path(name: str) -> Path:
     return Path(settings.data["processed_data_path"]) / name
 
 
+def _latest_metrics_path() -> Path | None:
+    settings = load_settings()
+    models_dir = Path(settings.data["models_path"]) / "leg_model"
+    metrics = sorted(models_dir.glob("metrics_*_v1_*.json"))
+    return metrics[-1] if metrics else None
+
+
 def _source_from_payload(payload: dict[str, Any], default: str = "fixture_fallback") -> str:
     meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
     if "data_source" in payload:
@@ -44,6 +51,38 @@ def _with_data_source(payload: Any, *, default: str = "fixture_fallback") -> Any
             for item in enriched["opportunities"]
         ]
     return enriched
+
+
+@app.get("/health")
+def health() -> Any:
+    """Return lightweight service health and artifact availability."""
+    settings = load_settings()
+    processed = Path(settings.data["processed_data_path"])
+    return {
+        "status": "ok",
+        "service": "edge-desk-api",
+        "processed_path": str(processed),
+        "picks_today_exists": _processed_path("picks_today.json").exists(),
+        "market_opportunities_exists": _processed_path("market_opportunities.json").exists(),
+        "config_valid": True,
+    }
+
+
+@app.get("/model/status")
+def model_status() -> Any:
+    """Return model artifact and validation metadata availability."""
+    model_path = _processed_path("models/model.pkl")
+    metrics_path = _latest_metrics_path()
+    metrics = None
+    if metrics_path and metrics_path.exists():
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    return {
+        "model_available": model_path.exists(),
+        "model_path": str(model_path),
+        "metrics_available": metrics is not None,
+        "metrics_path": str(metrics_path) if metrics_path else None,
+        "metrics": metrics,
+    }
 
 
 @app.get("/picks/today")
