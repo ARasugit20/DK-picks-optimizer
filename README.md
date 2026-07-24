@@ -129,6 +129,23 @@ ruff check .
 
 See [docs/VALIDATION.md](docs/VALIDATION.md) for focused smoke-test, optimizer, and config-validation runbooks.
 
+## Production readiness
+
+- [System design](docs/SYSTEM_DESIGN.md)
+- [Security and compliance notes](docs/SECURITY_AND_COMPLIANCE.md)
+- [Probability-to-capital engine](docs/PROBABILITY_TO_CAPITAL.md)
+- [Artifact schemas](schemas/)
+- [Fixture smoke evidence](docs/evidence/fixture_smoke_2026_07_23/)
+
+Useful ops commands:
+
+```bash
+make validate
+make smoke
+make test
+docker compose up --build
+```
+
 ## Project layout
 
 ```
