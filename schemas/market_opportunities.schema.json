@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Edge Desk Market Opportunities",
+  "type": "object",
+  "required": ["meta", "data_source", "hero_pick", "opportunities", "edge_summary", "portfolio", "account"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["data_source", "is_live"],
+      "properties": {
+        "data_source": { "enum": ["live", "fixture_fallback"] },
+        "is_live": { "type": "boolean" },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "fetched_at": { "type": "string" }
+      }
+    },
+    "data_source": { "enum": ["live", "fixture_fallback"] },
+    "hero_pick": { "type": ["object", "null"] },
+    "opportunities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["market_id", "question", "market_price", "model_prob", "edge", "data_source"],
+        "properties": {
+          "market_id": { "type": "string" },
+          "question": { "type": "string" },
+          "market_price": { "type": "number", "minimum": 0, "maximum": 1 },
+          "model_prob": { "type": "number", "minimum": 0, "maximum": 1 },
+          "edge": { "type": "number" },
+          "data_source": { "enum": ["live", "fixture_fallback"] }
+        }
+      }
+    },
+    "edge_summary": { "type": "object" },
+    "portfolio": { "type": "array" },
+    "account": { "type": "object" }
+  }
+}

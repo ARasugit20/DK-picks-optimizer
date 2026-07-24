@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Market Trade Ledger Row",
+  "type": "object",
+  "required": ["trade_id", "market_id", "side", "quantity", "average_price", "fair_value_prob", "data_source", "placed_at"],
+  "properties": {
+    "trade_id": { "type": "string" },
+    "market_id": { "type": "string" },
+    "side": { "enum": ["YES", "NO"] },
+    "quantity": { "type": "number", "exclusiveMinimum": 0 },
+    "average_price": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+    "fair_value_prob": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+    "data_source": { "enum": ["live", "fixture_fallback"] },
+    "placed_at": { "type": "string" },
+    "settled": { "type": "boolean" },
+    "realized": { "type": ["boolean", "null"] },
+    "realized_pnl": { "type": ["number", "null"] }
+  }
+}

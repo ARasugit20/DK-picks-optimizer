@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Slate Picks",
+  "type": "object",
+  "required": ["slate_id", "generated_at", "bankroll", "total_exposure", "parlays"],
+  "properties": {
+    "slate_id": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "bankroll": { "type": "number", "minimum": 0 },
+    "total_exposure": { "type": "number", "minimum": 0 },
+    "data_source": { "enum": ["live", "fixture_fallback"] },
+    "parlays": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["parlay_id", "legs", "p_parlay", "ev_per_unit", "stake", "expected_payout"],
+        "properties": {
+          "parlay_id": { "type": "string" },
+          "legs": { "type": "array" },
+          "p_parlay": { "type": "number", "minimum": 0, "maximum": 1 },
+          "ev_per_unit": { "type": "number" },
+          "stake": { "type": "number", "minimum": 0 },
+          "expected_payout": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}
