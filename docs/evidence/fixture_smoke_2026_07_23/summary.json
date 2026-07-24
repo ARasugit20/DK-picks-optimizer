@@ -1,0 +1,20 @@
+{
+  "evidence_type": "fixture_smoke",
+  "date": "2026-07-23",
+  "data_source": "fixture_fallback",
+  "claims": [
+    "offline market pipeline can run without network clients",
+    "artifact schemas are documented",
+    "config validation fails fast before runtime"
+  ],
+  "not_claims": [
+    "live profitability",
+    "real-money execution",
+    "settled market alpha"
+  ],
+  "validation_commands": [
+    "pytest tests/pipeline/test_run_market_pipeline_smoke.py -v",
+    "pytest tests/test_artifact_schemas.py -v",
+    "python3 -m dk_picks.cli validate-config --path betting_system/config.yaml"
+  ]
+}
