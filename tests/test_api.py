@@ -30,6 +30,27 @@ def test_picks_today_returns_200_with_schema(api_client, picks_today_payload):
     assert len(parsed.parlays) >= 1
 
 
+def test_health_endpoint_reports_artifact_flags(api_client):
+    """GET /health returns service status and artifact presence."""
+    response = api_client.get("/health")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["service"] == "edge-desk-api"
+    assert body["config_valid"] is True
+    assert body["picks_today_exists"] is True
+
+
+def test_model_status_endpoint_reports_model_availability(api_client):
+    """GET /model/status returns model metadata without requiring an artifact."""
+    response = api_client.get("/model/status")
+    assert response.status_code == 200
+    body = response.json()
+    assert "model_available" in body
+    assert "model_path" in body
+    assert "metrics_available" in body
+
+
 def test_picks_today_404_when_missing(test_config_path, tmp_path):
     """GET /picks/today returns 404 when no artifact exists."""
     os.environ["BETTING_CONFIG_PATH"] = str(test_config_path)
