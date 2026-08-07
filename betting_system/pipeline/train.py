@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -21,6 +23,25 @@ from betting_system.logging_utils import get_logger, utcnow
 
 
 logger = get_logger(__name__)
+ARTIFACT_VERSION = "1.0.0"
+
+
+def _git_sha() -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return result.stdout.strip()
+
+
+def _config_fingerprint(settings: Any) -> str:
+    payload = json.dumps(settings.raw, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 def expected_calibration_error(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> float:
@@ -142,7 +163,11 @@ def train_market_type(
     best.update({"random_state": seed, "n_jobs": -1})
 
     base_lgbm = LGBMClassifier(**best)
-    # Calibrate via CV on training set
+    base_lgbm.fit(X_train, y_train)
+    p_uncal = base_lgbm.predict_proba(X_valid)[:, 1]
+    ece_uncal = expected_calibration_error(y_valid.to_numpy(), p_uncal)
+
+    calibration_method = primary_method
     cal = CalibratedClassifierCV(base_lgbm, method=primary_method, cv=5)
     cal.fit(X_train, y_train)
     p_valid = cal.predict_proba(X_valid)[:, 1]
@@ -151,6 +176,7 @@ def train_market_type(
 
     if ece > ece_threshold:
         logger.warning("ECE %.4f exceeded threshold %.4f, falling back to %s", ece, ece_threshold, fallback_method)
+        calibration_method = fallback_method
         cal = CalibratedClassifierCV(base_lgbm, method=fallback_method, cv=5)
         cal.fit(X_train, y_train)
         p_valid = cal.predict_proba(X_valid)[:, 1]
@@ -183,11 +209,24 @@ def train_market_type(
     joblib.dump(cal, lgbm_path)
     joblib.dump(xgb, xgb_path)
     metrics = {
+        "artifact_version": ARTIFACT_VERSION,
         "market_type": market_type,
         "trained_at": utcnow().isoformat(),
+        "git_sha": _git_sha(),
+        "config_fingerprint": _config_fingerprint(settings),
         "holdout_start": holdout_start.isoformat(),
+        "dataset_window": {
+            "train_rows": int(len(train_df)),
+            "valid_rows": int(len(valid_df)),
+            "train_start": str(train_df["game_date"].min()),
+            "train_end": str(train_df["game_date"].max()),
+            "valid_start": str(valid_df["game_date"].min()),
+            "valid_end": str(valid_df["game_date"].max()),
+        },
+        "calibration_method": calibration_method,
         "val_log_loss_lgbm_cal": float(ll_valid),
         "val_ece_lgbm_cal": float(ece),
+        "val_ece_lgbm_uncal": float(ece_uncal),
         "val_log_loss_xgb": float(ll_xgb),
         "optuna_best_params": best,
     }

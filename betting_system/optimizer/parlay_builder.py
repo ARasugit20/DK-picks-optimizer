@@ -19,19 +19,43 @@ def load_correlation_matrix(path: str | Path) -> pd.DataFrame:
     return df
 
 
+def pairwise_correlation_discount(correlations: list[float]) -> float:
+    """Compute conservative multiplicative discount from pairwise correlations."""
+    discount = 1.0
+    for corr in correlations:
+        discount *= max(0.0, 1.0 - abs(float(corr)))
+    return float(discount)
+
+
+def _pair_discount(
+    corr: float,
+    *,
+    used_default: bool,
+    corr_discount_default: float,
+) -> float:
+    """Apply configured discount for unknown pairs or correlation-derived haircut."""
+    if used_default and corr_discount_default < 1.0:
+        return max(0.0, min(1.0, corr_discount_default))
+    return max(0.0, 1.0 - abs(float(corr)))
+
+
 def _pair_key(a: dict[str, Any], b: dict[str, Any]) -> tuple[str, str, str, str]:
     """Build a stable key for two legs (unused in v1 ranking)."""
     return (a["market_type"], a["player_id"], b["market_type"], b["player_id"])
 
 
-def _corr_lookup(corr_df: pd.DataFrame, leg_a: dict[str, Any], leg_b: dict[str, Any], default: float) -> float:
-    """Return pairwise correlation for two legs, or *default* when unknown."""
+def _corr_lookup_with_flag(
+    corr_df: pd.DataFrame,
+    leg_a: dict[str, Any],
+    leg_b: dict[str, Any],
+    default: float,
+) -> tuple[float, bool]:
+    """Return pairwise correlation and whether the configured default was used."""
     if corr_df.empty:
-        return default
-    # Expected columns: market_type_a, player_id_a, market_type_b, player_id_b, corr
+        return default, True
     cols = {"market_type_a", "player_id_a", "market_type_b", "player_id_b", "corr"}
     if not cols.issubset(set(corr_df.columns)):
-        return default
+        return default, True
     a = (leg_a["market_type"], str(leg_a["player_id"]))
     b = (leg_b["market_type"], str(leg_b["player_id"]))
     mask = (
@@ -41,8 +65,7 @@ def _corr_lookup(corr_df: pd.DataFrame, leg_a: dict[str, Any], leg_b: dict[str, 
         & (corr_df["player_id_b"].astype(str) == b[1])
     )
     if mask.any():
-        return float(corr_df.loc[mask, "corr"].iloc[0])
-    # symmetric
+        return float(corr_df.loc[mask, "corr"].iloc[0]), False
     mask = (
         (corr_df["market_type_a"] == b[0])
         & (corr_df["player_id_a"].astype(str) == b[1])
@@ -50,8 +73,14 @@ def _corr_lookup(corr_df: pd.DataFrame, leg_a: dict[str, Any], leg_b: dict[str, 
         & (corr_df["player_id_b"].astype(str) == a[1])
     )
     if mask.any():
-        return float(corr_df.loc[mask, "corr"].iloc[0])
-    return default
+        return float(corr_df.loc[mask, "corr"].iloc[0]), False
+    return default, True
+
+
+def _corr_lookup(corr_df: pd.DataFrame, leg_a: dict[str, Any], leg_b: dict[str, Any], default: float) -> float:
+    """Return pairwise correlation for two legs, or *default* when unknown."""
+    corr, _ = _corr_lookup_with_flag(corr_df, leg_a, leg_b, default=default)
+    return corr
 
 
 def build_parlay_candidates(
@@ -70,6 +99,7 @@ def build_parlay_candidates(
     max_n = max(min_n, max_n)
     corr_max_pair = float(cfg["correlation_max_pair"])
     corr_default = float(cfg.get("correlation_default_pair", 0.0))
+    corr_discount_default = float(cfg.get("correlation_discount_default", 1.0))
 
     corr_df = load_correlation_matrix(corr_path) if corr_path else pd.DataFrame()
 
@@ -84,19 +114,30 @@ def build_parlay_candidates(
 
             # Filter: correlation threshold (pairwise)
             ok = True
-            discount = 1.0
+            pair_corrs: list[float] = []
             for i in range(len(combo)):
                 for j in range(i + 1, len(combo)):
-                    corr = _corr_lookup(corr_df, combo[i], combo[j], default=corr_default)
+                    corr, used_default = _corr_lookup_with_flag(
+                        corr_df, combo[i], combo[j], default=corr_default
+                    )
                     if abs(corr) > corr_max_pair:
                         ok = False
                         break
-                    # conservative multiplicative discount
-                    discount *= max(0.0, 1.0 - abs(corr))
+                    pair_corrs.append(
+                        _pair_discount(
+                            corr,
+                            used_default=used_default,
+                            corr_discount_default=corr_discount_default,
+                        )
+                    )
                 if not ok:
                     break
             if not ok:
                 continue
+
+            discount = 1.0
+            for pair_discount in pair_corrs:
+                discount *= pair_discount
 
             p_parlay = 1.0
             dec_parlay = 1.0

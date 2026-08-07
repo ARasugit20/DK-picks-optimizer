@@ -51,6 +51,20 @@ def test_model_status_endpoint_reports_model_availability(api_client):
     assert "metrics_available" in body
 
 
+def test_picks_today_500_on_invalid_artifact(test_config_path, seeded_processed_dir):
+    """Malformed picks artifacts fail loudly at the API boundary."""
+    invalid = {"slate_id": "broken", "bankroll": "not-a-number"}
+    (seeded_processed_dir / "picks_today.json").write_text(
+        __import__("json").dumps(invalid),
+        encoding="utf-8",
+    )
+    os.environ["BETTING_CONFIG_PATH"] = str(test_config_path)
+    client = TestClient(app)
+    response = client.get("/picks/today")
+    assert response.status_code == 500
+    assert "Invalid picks_today artifact" in response.json()["detail"]
+
+
 def test_picks_today_404_when_missing(test_config_path, tmp_path):
     """GET /picks/today returns 404 when no artifact exists."""
     os.environ["BETTING_CONFIG_PATH"] = str(test_config_path)

@@ -91,3 +91,44 @@ def test_validate_config_cli_missing_file(tmp_path: Path):
     assert result.exit_code != 0
     assert "config invalid" in result.output
     assert "Config not found" in result.output
+
+
+def test_correlation_max_pair_out_of_range_fails(tmp_path: Path, repo_root: Path):
+    """Pair correlation cap must remain in [0, 1]."""
+    path = _write_config(
+        tmp_path,
+        repo_root,
+        lambda raw: raw["model"].update({"correlation_max_pair": 1.2}),
+    )
+    with pytest.raises(ValueError, match="correlation_max_pair"):
+        validate_config(path)
+
+
+def test_ece_test_max_below_threshold_fails(tmp_path: Path, repo_root: Path):
+    """ece_test_max must be at least ece_threshold."""
+    path = _write_config(
+        tmp_path,
+        repo_root,
+        lambda raw: raw["training"]["calibration"].update(
+            {"ece_threshold": 0.10, "ece_test_max": 0.05}
+        ),
+    )
+    with pytest.raises(ValueError, match="ece_test_max must be >= ece_threshold"):
+        validate_config(path)
+
+
+def test_invalid_calibration_method_fails(tmp_path: Path, repo_root: Path):
+    """Calibration methods are restricted to isotonic/sigmoid."""
+    path = _write_config(
+        tmp_path,
+        repo_root,
+        lambda raw: raw["training"]["calibration"].update({"primary_method": "platt"}),
+    )
+    with pytest.raises(ValueError, match="calibration method"):
+        validate_config(path)
+
+
+def test_correlation_discount_default_is_loaded(repo_root: Path):
+    """Configured correlation discount default is present and in-range."""
+    cfg = validate_config(repo_root / "betting_system" / "config.yaml")
+    assert 0.0 <= cfg.model["correlation_discount_default"] <= 1.0

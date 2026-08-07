@@ -84,6 +84,20 @@ class CalibrationConfig(FlexibleModel):
     fallback_method: str
     calibration_plot_bins: int = Field(gt=0)
 
+    @field_validator("primary_method", "fallback_method")
+    @classmethod
+    def _validate_calibration_method(cls, value: str) -> str:
+        allowed = {"isotonic", "sigmoid"}
+        if value not in allowed:
+            raise ValueError(f"calibration method must be one of {sorted(allowed)}")
+        return value
+
+    @model_validator(mode="after")
+    def _validate_ece_bounds(self) -> CalibrationConfig:
+        if self.ece_test_max < self.ece_threshold:
+            raise ValueError("ece_test_max must be >= ece_threshold")
+        return self
+
 
 class TrainingConfig(FlexibleModel):
     optuna_trials: int = Field(ge=0)

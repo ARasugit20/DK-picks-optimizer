@@ -18,6 +18,8 @@ APScheduler
 joblib
 pytest
 pytest-cov
+hypothesis
+fastapi
 shap
 matplotlib
 nba_api
